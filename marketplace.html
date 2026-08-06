@@ -1,87 +1,275 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire - Marketplace</title>
-  <link rel="stylesheet" href="./public/css/variables.css">
-  <link rel="stylesheet" href="./public/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace - Intercambio Comercial Seguro</title>
+    <link rel="stylesheet" href="/public/css/variables.css">
+    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">Pase y Mire</div>
-    <div class="nav-links">
-      <a href="./marketplace.html" class="nav-link active">Marketplace</a>
-      <a href="./dashboard.html" class="nav-link">Dashboard</a>
-    </div>
-    <div class="nav-user">
-      <span id="userName">Admin</span>
-      <button id="logoutBtn" class="btn-small">Salir</button>
-    </div>
-  </nav>
+    <!-- Header/Navigation -->
+    <header class="main-header">
+        <nav class="navbar">
+            <div class="nav-brand">
+                <i class="fas fa-exchange-alt"></i>
+                <span>TradeHub</span>
+            </div>
+            
+            <div class="nav-search">
+                <input type="text" id="searchInput" placeholder="Buscar productos, servicios...">
+                <button onclick="searchProducts()"><i class="fas fa-search"></i></button>
+            </div>
 
-  <main class="marketplace">
-    <div class="marketplace-header">
-      <div>
-        <h1>Marketplace</h1>
-        <p class="subtitle">Productos cerca tuyo · Espacio libre</p>
-      </div>
-      <button class="btn-primary btn-publish" id="btnPublish">+ Publicar</button>
+            <div class="nav-actions">
+                <button class="nav-btn" onclick="showNotifications()">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge" id="notifBadge">3</span>
+                </button>
+                
+                <button class="nav-btn" onclick="showChat()">
+                    <i class="fas fa-comments"></i>
+                    <span class="badge" id="chatBadge">5</span>
+                </button>
+
+                <div class="user-profile" onclick="showProfile()">
+                    <img src="/assets/default-avatar.png" alt="User" id="userAvatar">
+                    <span class="verified-badge" id="userVerified" style="display:none;">
+                        <i class="fas fa-check-circle"></i>
+                    </span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="marketplace-main">
+        <!-- Categories Sidebar -->
+        <aside class="categories-sidebar">
+            <h3><i class="fas fa-th-large"></i> Categorías</h3>
+            <ul class="category-list">
+                <li class="category-item active" onclick="filterCategory('all')">
+                    <i class="fas fa-th"></i> Todos
+                </li>
+                <li class="category-item" onclick="filterCategory('productos')">
+                    <i class="fas fa-box"></i> Productos
+                </li>
+                <li class="category-item" onclick="filterCategory('servicios')">
+                    <i class="fas fa-concierge-bell"></i> Servicios
+                </li>
+                <li class="category-item" onclick="filterCategory('logistica')">
+                    <i class="fas fa-truck"></i> Logística
+                </li>
+                <li class="category-item" onclick="filterCategory('vehiculos')">
+                    <i class="fas fa-car"></i> Vehículos
+                </li>
+                <li class="category-item" onclick="filterCategory('inmuebles')">
+                    <i class="fas fa-home"></i> Inmuebles
+                </li>
+                <li class="category-item" onclick="filterCategory('tecnologia')">
+                    <i class="fas fa-laptop"></i> Tecnología
+                </li>
+            </ul>
+
+            <!-- Logistics CTA -->
+            <div class="logistics-cta">
+                <h4><i class="fas fa-truck-moving"></i> ¿Eres proveedor?</h4>
+                <p>Únete como logística verificada</p>
+                <button onclick="showLogisticsSignup()" class="btn-primary">
+                    Registrarse - $10/mes
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Marketplace Grid -->
+        <section class="marketplace-content">
+            <!-- Filters & Sort -->
+            <div class="marketplace-filters">
+                <div class="filter-group">
+                    <select id="sortSelect" onchange="sortProducts()">
+                        <option value="recent">Más recientes</option>
+                        <option value="price-asc">Precio: menor a mayor</option>
+                        <option value="price-desc">Precio: mayor a menor</option>
+                        <option value="popular">Más populares</option>
+                    </select>
+                    
+                    <button onclick="toggleFilters()" class="filter-btn">
+                        <i class="fas fa-filter"></i> Filtros
+                    </button>
+                </div>
+
+                <div class="view-toggle">
+                    <button class="view-btn active" onclick="setView('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="view-btn" onclick="setView('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Filters -->
+            <div class="active-filters" id="activeFilters"></div>
+
+            <!-- Products Grid -->
+            <div class="products-grid" id="productsGrid">
+                <!-- Dynamic content loaded here -->
+            </div>
+
+            <!-- Loading State -->
+            <div class="loading-state" id="loadingState" style="display:none;">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Cargando productos...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <i class="fas fa-box-open"></i>
+                <p>No se encontraron productos</p>
+                <button onclick="clearFilters()" class="btn-secondary">Limpiar filtros</button>
+            </div>
+        </section>
+
+        <!-- Right Sidebar (Ads & Stats) -->
+        <aside class="marketplace-sidebar">
+            <!-- User Stats -->
+            <div class="sidebar-card user-stats">
+                <h4>Tu Actividad</h4>
+                <div class="stat-item">
+                    <span class="stat-label">Publicaciones</span>
+                    <span class="stat-value" id="userPosts">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Ventas</span>
+                    <span class="stat-value" id="userSales">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Mensajes</span>
+                    <span class="stat-value" id="userMessages">0</span>
+                </div>
+            </div>
+
+            <!-- Advertisement Space -->
+            <div class="sidebar-card ad-space">
+                <div class="ad-label">Publicidad</div>
+                <div class="ad-content" id="adContent">
+                    <!-- Dynamic ads -->
+                </div>
+            </div>
+
+            <!-- Verified Providers -->
+            <div class="sidebar-card verified-providers">
+                <h4><i class="fas fa-shield-alt"></i> Proveedores Verificados</h4>
+                <div class="provider-list" id="providerList">
+                    <!-- Dynamic providers -->
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Product Modal -->
+    <div class="modal" id="productModal">
+        <div class="modal-content product-modal">
+            <button class="modal-close" onclick="closeProductModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="modal-body" id="productModalBody">
+                <!-- Dynamic product content -->
+            </div>
+        </div>
     </div>
 
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">Todos</button>
-      <button class="filter-btn" data-filter="patrocinado">Patrocinados</button>
-      <button class="filter-btn" data-filter="organico">Orgánicos</button>
-      <button class="filter-btn" data-filter="cerca">Cerca de mí</button>
+    <!-- Chat Modal -->
+    <div class="modal" id="chatModal">
+        <div class="modal-content chat-modal">
+            <div class="chat-header">
+                <h3><i class="fas fa-comments"></i> Mensajes</h3>
+                <button class="modal-close" onclick="closeChat()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="chat-body">
+                <div class="chat-conversations" id="chatConversations">
+                    <!-- Conversations list -->
+                </div>
+                <div class="chat-messages" id="chatMessages">
+                    <!-- Active conversation messages -->
+                </div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Escribe un mensaje...">
+                    <button onclick="sendMessage()">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="products-grid" id="productsGrid"></div>
-  </main>
+    <!-- New Listing Modal -->
+    <div class="modal" id="listingModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Publicar Nuevo Aviso</h3>
+                <button class="modal-close" onclick="closeListingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="listingForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label>Título *</label>
+                        <input type="text" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Categoría *</label>
+                        <select name="category" required>
+                            <option value="">Seleccionar</option>
+                            <option value="productos">Productos</option>
+                            <option value="servicios">Servicios</option>
+                            <option value="logistica">Logística</option>
+                            <option value="vehiculos">Vehículos</option>
+                            <option value="inmuebles">Inmuebles</option>
+                            <option value="tecnologia">Tecnología</option>
+                        </select>
+                    </div>
 
-  <!-- Modal para publicar -->
-  <div class="modal-overlay" id="modalPublish">
-    <div class="modal">
-      <div class="modal-header">
-        <h2>Publicar producto</h2>
-        <button class="modal-close" id="btnCloseModal">×</button>
-      </div>
-      <form id="publishForm">
-        <div class="input-group">
-          <label for="titulo">Título</label>
-          <input type="text" id="titulo" required placeholder="Ej: Tocadiscos Dual 1970">
+                    <div class="form-group">
+                        <label>Precio *</label>
+                        <input type="number" name="price" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descripción *</label>
+                        <textarea name="description" rows="4" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Imágenes</label>
+                        <input type="file" name="images" multiple accept="image/*">
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" onclick="closeListingModal()" class="btn-secondary">
+                            Cancelar
+                        </button>
+                        <button type="submit" class="btn-primary">
+                            Publicar Ahora
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="input-group">
-          <label for="descripcion">Descripción</label>
-          <textarea id="descripcion" rows="3" required placeholder="Contá un poco sobre el producto..."></textarea>
-        </div>
-        <div class="input-row">
-          <div class="input-group">
-            <label for="precio">Precio (ARS)</label>
-            <input type="number" id="precio" required min="1" placeholder="150000">
-          </div>
-          <div class="input-group">
-            <label for="distancia">Distancia (km)</label>
-            <input type="number" id="distancia" required min="0.1" step="0.1" placeholder="1.5">
-          </div>
-        </div>
-        <div class="input-group">
-          <label for="tipo">Tipo</label>
-          <select id="tipo" required>
-            <option value="organico">Orgánico</option>
-            <option value="patrocinado">Patrocinado</option>
-          </select>
-        </div>
-        <div class="input-group">
-          <label for="vendedor">Tu usuario</label>
-          <input type="text" id="vendedor" required placeholder="tu_usuario">
-        </div>
-        <button type="submit" class="btn-primary">Publicar ahora</button>
-      </form>
     </div>
-  </div>
 
-  <script src="./public/js/auth.js"></script>
-  <script src="./public/js/marketplace.js"></script>
+    <!-- Floating Action Button -->
+    <button class="fab" onclick="openListingModal()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <script src="/public/js/auth.js"></script>
+    <script src="/public/js/marketplace.js"></script>
+    <script src="/public/js/app.js"></script>
 </body>
-                                      </html>
+          </html>
