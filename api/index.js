@@ -1,6 +1,6 @@
 // ============================================
 // API COMPLETA - PyM (Pase y Mire)
-// Con MongoDB Atlas
+// Con MongoDB Atlas y Cloudinary
 // ============================================
 
 const express = require('express');
@@ -17,6 +17,9 @@ const Bid = require('../models/Bid');
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
 
+// Importar upload router (Cloudinary)
+const uploadRouter = require('./upload');
+
 // Conectar a MongoDB
 connectDB();
 
@@ -25,6 +28,9 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Integrar router de upload (Cloudinary)
+app.use('/api/upload', uploadRouter);
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'tradehub-secret-key-2024';
@@ -61,8 +67,9 @@ const authMiddleware = async (req, res, next) => {
 app.get('/api/test', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'API PyM funcionando con MongoDB',
-    timestamp: new Date().toISOString()
+    message: 'API PyM funcionando con MongoDB y Cloudinary',
+    timestamp: new Date().toISOString(),
+    cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? 'Configurado' : 'No configurado'
   });
 });
 
@@ -158,7 +165,8 @@ app.post('/api/auth/login', async (req, res) => {
         verified: user.verified,
         logisticsProvider: user.logisticsProvider,
         providerService: user.providerService,
-        providerVerified: user.providerVerified
+        providerVerified: user.providerVerified,
+        avatar: user.avatar
       }
     });
   } catch (error) {
@@ -176,7 +184,8 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
     verified: req.user.verified,
     logisticsProvider: req.user.logisticsProvider,
     providerService: req.user.providerService,
-    providerVerified: req.user.providerVerified
+    providerVerified: req.user.providerVerified,
+    avatar: req.user.avatar
   });
 });
 
@@ -190,6 +199,36 @@ app.get('/api/user/profile', authMiddleware, async (req, res) => {
     res.json(user);
   } catch (error) {
     console.error('Error obteniendo perfil:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// Actualizar perfil
+app.put('/api/user/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name, phone, idNumber } = req.body;
+
+    const user = await User.findById(req.user._id);
+    
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (idNumber) user.idNumber = idNumber;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        idNumber: user.idNumber,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Error actualizando perfil:', error);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
@@ -245,7 +284,7 @@ app.post('/api/logistics/register', authMiddleware, async (req, res) => {
   }
 });
 
-// Verificación facial (simulada)
+// Verificación facial (simulada - después será AWS Rekognition)
 app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
   try {
     const provider = await LogisticsProvider.findOne({ user: req.user._id });
@@ -268,7 +307,7 @@ app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
   }
 });
 
-// Procesar pago (simulado)
+// Procesar pago (simulado - después será MercadoPago)
 app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
   try {
     const provider = await LogisticsProvider.findOne({ user: req.user._id });
@@ -671,30 +710,3 @@ app.post('/api/chat/send', authMiddleware, async (req, res) => {
         id: message._id,
         content: message.content,
         sender: req.user._id,
-        createdAt: message.createdAt
-      }
-    });
-  } catch (error) {
-    console.error('Error enviando mensaje:', error);
-    res.status(500).json({ error: 'Error al enviar mensaje' });
-  }
-});
-
-// ============================================
-// MARKETPLACE (Productos)
-// ============================================
-
-app.get('/api/marketplace/products', async (req, res) => {
-  try {
-    // Por ahora retornamos array vacío (se puede expandir después)
-    res.json({ success: true, products: [] });
-  } catch (error) {
-    console.error('Error obteniendo productos:', error);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-// ============================================
-// EXPORTAR PARA VERCEL
-// ============================================
-module.exports = app;
