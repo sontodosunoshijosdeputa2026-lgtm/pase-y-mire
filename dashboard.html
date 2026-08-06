@@ -11,29 +11,42 @@
   <nav class="navbar">
     <div class="nav-brand">Pase y Mire</div>
     <div class="nav-user">
-      <span id="userName">Usuario</span>
+      <span id="userName">Admin</span>
       <button id="logoutBtn" class="btn-small">Salir</button>
     </div>
   </nav>
 
   <main class="dashboard">
-    <h2>Dashboard</h2>
+    <div class="dashboard-header">
+      <h2>Panel de control</h2>
+      <p class="welcome" id="mensaje">Cargando...</p>
+    </div>
+
     <div class="cards">
       <div class="card">
+        <div class="card-icon">👁</div>
         <h3>Visitas</h3>
-        <p class="number" id="visitas">0</p>
+        <p class="number" id="visitas">—</p>
       </div>
       <div class="card">
+        <div class="card-icon">👥</div>
         <h3>Usuarios</h3>
-        <p class="number" id="usuarios">0</p>
+        <p class="number" id="usuarios">—</p>
       </div>
       <div class="card">
-        <h3>Posts</h3>
-        <p class="number" id="posts">0</p>
+        <div class="card-icon">📦</div>
+        <h3>Publicaciones</h3>
+        <p class="number" id="posts">—</p>
       </div>
     </div>
-    <div class="welcome-msg">
-      <p id="mensaje">Cargando...</p>
+
+    <div class="quick-actions">
+      <h3>Acciones rápidas</h3>
+      <div class="actions-grid">
+        <a href="#" class="action-btn">Ver Marketplace</a>
+        <a href="#" class="action-btn">Modo Chofer</a>
+        <a href="#" class="action-btn">Publicar producto</a>
+      </div>
     </div>
   </main>
 
@@ -41,4 +54,3 @@
   <script src="public/js/app.js"></script>
 </body>
 </html>
-
