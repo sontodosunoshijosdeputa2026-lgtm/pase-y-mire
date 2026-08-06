@@ -1,36 +1,216 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire - Ingresar</title>
-  <link rel="stylesheet" href="./public/css/variables.css">
-  <link rel="stylesheet" href="./public/css/style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeHub - Intercambio Comercial Seguro</title>
+    <link rel="stylesheet" href="/public/css/variables.css">
+    <link rel="stylesheet" href="/public/css/style.css">
+    <style>
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-lg);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .auth-box {
+            background: white;
+            border-radius: var(--border-radius-xl);
+            padding: var(--spacing-2xl);
+            box-shadow: var(--shadow-xl);
+            width: 100%;
+            max-width: 450px;
+        }
+        
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--spacing-2xl);
+        }
+        
+        .auth-header h1 {
+            color: var(--primary);
+            font-size: var(--font-size-3xl);
+            margin-bottom: var(--spacing-sm);
+        }
+        
+        .auth-header p {
+            color: var(--gray-600);
+        }
+        
+        .auth-tabs {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: var(--spacing-md);
+            border: none;
+            background: var(--gray-100);
+            color: var(--gray-600);
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: var(--border-radius-md);
+            transition: var(--transition-base);
+        }
+        
+        .auth-tab.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .form-divider {
+            text-align: center;
+            margin: var(--spacing-xl) 0;
+            color: var(--gray-500);
+            position: relative;
+        }
+        
+        .form-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gray-200);
+        }
+        
+        .form-divider span {
+            background: white;
+            padding: 0 var(--spacing-md);
+            position: relative;
+        }
+        
+        .security-badges {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+            color: var(--gray-500);
+            font-size: var(--font-size-sm);
+        }
+        
+        .security-badges i {
+            color: var(--success);
+            margin-right: var(--spacing-xs);
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <div class="login-box">
-      <div class="logo">
-        <h1>Pase y Mire</h1>
-        <p class="subtitle">El espacio más libre</p>
-      </div>
-
-      <form id="loginForm">
-        <div class="input-group">
-          <label for="username">Usuario</label>
-          <input type="text" id="username" name="username" required placeholder="Tu usuario" autocomplete="username">
+    <div class="auth-container">
+        <div class="auth-box">
+            <div class="auth-header">
+                <h1><i class="fas fa-exchange-alt"></i> TradeHub</h1>
+                <p>Intercambio comercial seguro y verificado</p>
+            </div>
+            
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="showTab('login')">Iniciar Sesión</button>
+                <button class="auth-tab" onclick="showTab('register')">Registrarse</button>
+            </div>
+            
+            <!-- Login Form -->
+            <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    Ingresar
+                </button>
+            </form>
+            
+            <!-- Register Form -->
+            <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
+                <div class="form-group">
+                    <label>Nombre Completo</label>
+                    <input type="text" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Teléfono</label>
+                    <input type="tel" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>DNI/CUIT</label>
+                    <input type="text" name="idNumber" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    Crear Cuenta
+                </button>
+            </form>
+            
+            <div class="form-divider">
+                <span>o</span>
+            </div>
+            
+            <button class="btn-secondary" style="width: 100%; margin-bottom: var(--spacing-md);">
+                <i class="fab fa-google"></i> Continuar con Google
+            </button>
+            
+            <div class="security-badges">
+                <span><i class="fas fa-shield-alt"></i> Verificación segura</span>
+                <span><i class="fas fa-lock"></i> Encriptado SSL</span>
+            </div>
         </div>
-        <div class="input-group">
-          <label for="password">Contraseña</label>
-          <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password">
-        </div>
-        <button type="submit" class="btn-primary">Ingresar al flujo</button>
-        <p id="errorMsg" class="error"></p>
-      </form>
-
-      <p class="footer-text">Acceso exclusivo</p>
     </div>
-  </div>
-  <script src="./public/js/auth.js"></script>
+    
+    <script src="/public/js/auth.js"></script>
+    <script>
+        function showTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+        
+        // Verificar si ya hay sesión
+        window.addEventListener('load', async () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                const user = await authService.verifyToken();
+                if (user) {
+                    window.location.href = '/marketplace.html';
+                }
+            }
+        });
+    </script>
 </body>
   </html>
