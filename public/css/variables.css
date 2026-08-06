@@ -3,13 +3,12 @@
   --bg-card: #161b22;
   --bg-input: #21262d;
   --border: #30363d;
-  --text-primary: #c9d1d9;
+  --text-primary: #e6edf3;
   --text-secondary: #8b949e;
   --accent: #58a6ff;
   --accent-hover: #79b8ff;
   --danger: #f85149;
   --success: #3fb950;
-  --radius: 8px;
-  --shadow: 0 4px 12px rgba(0,0,0,0.4);
+  --radius: 10px;
+  --shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
-
