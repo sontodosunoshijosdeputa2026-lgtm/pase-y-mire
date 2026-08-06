@@ -1,547 +1,705 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyM - Pase y Mire | El Espacio más Libre</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+// ============================================
+// API COMPLETA - PyM (Pase y Mire)
+// Versión robusta con manejo de errores
+// ============================================
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
+const express = require('express');
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
-        .auth-box {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 100%;
-            max-width: 450px;
-            position: relative;
-            overflow: hidden;
-        }
+const app = express();
 
-        .auth-box::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-        }
+// Middlewares
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-        .brand-header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'tradehub-secret-key-2024';
 
-        .logo-container {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            margin-bottom: 1rem;
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
+// ============================================
+// CONEXIÓN A MONGODB
+// ============================================
+let mongoose;
+let User, LogisticsProvider, Offer, Bid, Message, Conversation;
 
-        .logo-text {
-            color: white;
-            font-size: 1.8rem;
-            font-weight: 900;
-            letter-spacing: -1px;
-        }
-
-        .brand-name {
-            font-size: 1.75rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 0.25rem;
-        }
-
-        .brand-slogan {
-            color: #6b7280;
-            font-size: 0.95rem;
-            font-style: italic;
-            font-weight: 500;
-        }
-
-        .brand-slogan::before {
-            content: '✨ ';
-        }
-
-        .auth-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            background: #f3f4f6;
-            padding: 0.25rem;
-            border-radius: 0.75rem;
-        }
-
-        .auth-tab {
-            flex: 1;
-            padding: 0.75rem;
-            border: none;
-            background: transparent;
-            color: #6b7280;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 0.5rem;
-            transition: all 0.3s;
-            font-size: 0.95rem;
-        }
-
-        .auth-tab.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .auth-form {
-            display: none;
-        }
-
-        .auth-form.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 0.875rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-            transition: all 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .btn-primary {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 1rem;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            width: 100%;
-            padding: 0.875rem;
-            background: #f3f4f6;
-            color: #9ca3af;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 600;
-            cursor: not-allowed;
-            font-size: 0.95rem;
-        }
-
-        .form-divider {
-            text-align: center;
-            margin: 1.5rem 0;
-            color: #9ca3af;
-            position: relative;
-            font-size: 0.9rem;
-        }
-
-        .form-divider::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: #e5e7eb;
-        }
-
-        .form-divider span {
-            background: white;
-            padding: 0 1rem;
-            position: relative;
-        }
-
-        .security-badges {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-top: 1.5rem;
-            color: #6b7280;
-            font-size: 0.8rem;
-        }
-
-        .security-badges i {
-            color: #10b981;
-            margin-right: 0.25rem;
-        }
-
-        .info-box {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border-left: 4px solid #f59e0b;
-            padding: 0.875rem;
-            margin-bottom: 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
-            color: #92400e;
-        }
-
-        .error-message {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            padding: 0.875rem;
-            margin-bottom: 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
-            color: #991b1b;
-            display: none;
-        }
-
-        .error-message.show {
-            display: block;
-            animation: shake 0.5s;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            75% { transform: translateX(10px); }
-        }
-
-        .success-message {
-            background: #d1fae5;
-            border-left: 4px solid #10b981;
-            padding: 0.875rem;
-            margin-bottom: 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
-            color: #065f46;
-            display: none;
-        }
-
-        .success-message.show {
-            display: block;
-        }
-
-        .brand-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-        }
-
-        .brand-footer-text {
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-
-        .brand-footer-text strong {
-            color: #667eea;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 0.5rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    </style>
-</head>
-<body>
-    <div class="auth-box">
-        <!-- Brand Header -->
-        <div class="brand-header">
-            <div class="logo-container">
-                <span class="logo-text">PyM</span>
-            </div>
-            <h1 class="brand-name">Pase y Mire</h1>
-            <p class="brand-slogan">El Espacio más Libre</p>
-        </div>
-        
-        <!-- Tabs -->
-        <div class="auth-tabs">
-            <button class="auth-tab active" onclick="showTab('login')">Iniciar Sesión</button>
-            <button class="auth-tab" onclick="showTab('register')">Registrarse</button>
-        </div>
-        
-        <!-- Error Message -->
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
-        
-        <!-- Login Form -->
-        <form id="loginForm" class="auth-form active" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Email</label>
-                <input type="email" name="email" required placeholder="tu@email.com" autocomplete="email">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-lock"></i> Contraseña</label>
-                <input type="password" name="password" required placeholder="••••••••" autocomplete="current-password">
-            </div>
-            
-            <button type="submit" class="btn-primary" id="loginBtn">
-                <i class="fas fa-sign-in-alt"></i> Ingresar
-            </button>
-        </form>
-        
-        <!-- Register Form -->
-        <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
-            <div class="info-box">
-                <i class="fas fa-info-circle"></i> 
-                <strong>Bienvenido a PyM</strong> - Tu cuenta se creará al instante.
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-user"></i> Nombre Completo</label>
-                <input type="text" name="name" required placeholder="Juan Pérez" autocomplete="name">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-envelope"></i> Email</label>
-                <input type="email" name="email" required placeholder="tu@email.com" autocomplete="email">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-phone"></i> Teléfono</label>
-                <input type="tel" name="phone" required placeholder="+54 11 1234-5678" autocomplete="tel">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-id-card"></i> DNI/CUIT</label>
-                <input type="text" name="idNumber" required placeholder="12345678" autocomplete="off">
-            </div>
-            
-            <div class="form-group">
-                <label><i class="fas fa-lock"></i> Contraseña</label>
-                <input type="password" name="password" minlength="6" required placeholder="Mínimo 6 caracteres" autocomplete="new-password">
-            </div>
-            
-            <button type="submit" class="btn-primary" id="registerBtn">
-                <i class="fas fa-user-plus"></i> Crear Cuenta
-            </button>
-        </form>
-        
-        <div class="form-divider">
-            <span>o</span>
-        </div>
-        
-        <button class="btn-secondary" disabled>
-            <i class="fab fa-google"></i> Google (Próximamente)
-        </button>
-        
-        <div class="security-badges">
-            <span><i class="fas fa-shield-alt"></i> Seguro</span>
-            <span><i class="fas fa-lock"></i> Encriptado</span>
-            <span><i class="fas fa-check-circle"></i> Verificado</span>
-        </div>
-
-        <div class="brand-footer">
-            <p class="brand-footer-text">
-                <strong>PyM</strong> · Pase y Mire · El Espacio más Libre
-            </p>
-        </div>
-    </div>
+const connectDB = async () => {
+  try {
+    mongoose = require('mongoose');
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000
+    });
+    console.log('✅ MongoDB conectado');
     
-    <script>
-        function showTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            hideMessages();
-            
-            if (tab === 'login') {
-                document.querySelectorAll('.auth-tab')[0].classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                document.querySelectorAll('.auth-tab')[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-            }
-        }
-        
-        function showError(message) {
-            const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.classList.add('show');
-            setTimeout(() => errorDiv.classList.remove('show'), 5000);
-        }
-        
-        function showSuccess(message) {
-            const successDiv = document.getElementById('successMessage');
-            successDiv.textContent = message;
-            successDiv.classList.add('show');
-        }
-        
-        function hideMessages() {
-            document.getElementById('errorMessage').classList.remove('show');
-            document.getElementById('successMessage').classList.remove('show');
-        }
-        
-        function setLoading(buttonId, loading) {
-            const btn = document.getElementById(buttonId);
-            if (loading) {
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loading"></span> Procesando...';
-            } else {
-                btn.disabled = false;
-                btn.innerHTML = buttonId === 'loginBtn' 
-                    ? '<i class="fas fa-sign-in-alt"></i> Ingresar'
-                    : '<i class="fas fa-user-plus"></i> Crear Cuenta';
-            }
-        }
-        
-        async function handleLogin(e) {
-            e.preventDefault();
-            hideMessages();
-            setLoading('loginBtn', true);
-            
-            const formData = new FormData(e.target);
-            const email = formData.get('email');
-            const password = formData.get('password');
-            
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showSuccess('¡Login exitoso! Redirigiendo...');
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    setTimeout(() => {
-                        window.location.href = '/marketplace.html';
-                    }, 1000);
-                } else {
-                    showError(data.error || 'Error al iniciar sesión');
-                }
-            } catch (error) {
-                showError('Error de conexión. Inténtalo más tarde.');
-            } finally {
-                setLoading('loginBtn', false);
-            }
-        }
-        
-        async function handleRegister(e) {
-            e.preventDefault();
-            hideMessages();
-            setLoading('registerBtn', true);
-            
-            const formData = new FormData(e.target);
-            const userData = {
-                name: formData.get('name'),
-                email: formData.get('email'),
-                password: formData.get('password'),
-                phone: formData.get('phone'),
-                idNumber: formData.get('idNumber')
-            };
-            
-            try {
-                const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(userData)
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    showSuccess('¡Cuenta creada! Revisá tu email y redirigiendo...');
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    setTimeout(() => {
-                        window.location.href = '/marketplace.html';
-                    }, 2000);
-                } else {
-                    showError(data.error || 'Error al registrar');
-                }
-            } catch (error) {
-                showError('Error de conexión. Inténtalo más tarde.');
-            } finally {
-                setLoading('registerBtn', false);
-            }
-        }
-        
-        window.addEventListener('load', async () => {
-            const token = localStorage.getItem('token');
-            if (token) {
-                try {
-                    const response = await fetch('/api/auth/verify', {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
-                    if (response.ok) {
-                        window.location.href = '/marketplace.html';
-                    }
-                } catch (error) {
-                    console.error('Error verificando token:', error);
-                }
-            }
-        });
-    </script>
-</body>
-</html>
+    User = require('../models/User');
+    LogisticsProvider = require('../models/LogisticsProvider');
+    Offer = require('../models/Offer');
+    Bid = require('../models/Bid');
+    Message = require('../models/Message');
+    Conversation = require('../models/Conversation');
+  } catch (error) {
+    console.error('❌ Error MongoDB:', error.message);
+  }
+};
+
+connectDB();
+
+// ============================================
+// CLOUDINARY (opcional)
+// ============================================
+let uploadRouter;
+try {
+  uploadRouter = require('./upload');
+  app.use('/api/upload', uploadRouter);
+  console.log('✅ Cloudinary cargado');
+} catch (error) {
+  console.log('⚠️ Cloudinary no disponible:', error.message);
+}
+
+// ============================================
+// SENDGRID (opcional)
+// ============================================
+let sendWelcomeEmail;
+try {
+  const sendgrid = require('../utils/sendgrid');
+  sendWelcomeEmail = sendgrid.sendWelcomeEmail;
+  console.log('✅ SendGrid cargado');
+} catch (error) {
+  console.log('️ SendGrid no disponible');
+  sendWelcomeEmail = async () => console.log('Email simulado');
+}
+
+// ============================================
+// MIDDLEWARE DE AUTENTICACIÓN
+// ============================================
+const authMiddleware = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'No autorizado - Token requerido' });
+    }
+    
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    
+    if (!User) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+    
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ error: 'Usuario no encontrado' });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Token inválido o expirado' });
+  }
+};
+
+// ============================================
+// RUTA DE PRUEBA
+// ============================================
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    success: true, 
+    message: 'API PyM funcionando',
+    timestamp: new Date().toISOString(),
+    mongodb: mongoose && mongoose.connection.readyState === 1 ? 'Conectado' : 'Desconectado',
+    cloudinary: !!uploadRouter,
+    sendgrid: !!sendWelcomeEmail
+  });
+});
+
+// ============================================
+// AUTENTICACIÓN
+// ============================================
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { name, email, password, phone, idNumber } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ error: 'Nombre, email y contraseña son obligatorios' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
+    }
+
+    if (!User) {
+      return res.status(500).json({ error: 'Base de datos no disponible. Intentá en unos minutos.' });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Este email ya está registrado' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      phone: phone || '',
+      idNumber: idNumber || ''
+    });
+
+    await user.save();
+
+    try {
+      sendWelcomeEmail(user.email, user.name);
+    } catch (emailError) {
+      console.log('Error enviando email:', emailError.message);
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        verified: user.verified,
+        logisticsProvider: user.logisticsProvider
+      }
+    });
+  } catch (error) {
+    console.error('Error en registro:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email y contraseña son obligatorios' });
+    }
+
+    if (!User) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'Credenciales inválidas' });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ error: 'Credenciales inválidas' });
+    }
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        verified: user.verified,
+        logisticsProvider: user.logisticsProvider,
+        providerService: user.providerService,
+        providerVerified: user.providerVerified,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.get('/api/auth/verify', authMiddleware, (req, res) => {
+  res.json({
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    verified: req.user.verified,
+    logisticsProvider: req.user.logisticsProvider,
+    providerService: req.user.providerService,
+    providerVerified: req.user.providerVerified,
+    avatar: req.user.avatar
+  });
+});
+
+app.get('/api/user/profile', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error('Error obteniendo perfil:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.put('/api/user/profile', authMiddleware, async (req, res) => {
+  try {
+    const { name, phone, idNumber } = req.body;
+    const user = await User.findById(req.user._id);
+    
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (idNumber) user.idNumber = idNumber;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        idNumber: user.idNumber,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    console.error('Error actualizando perfil:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+// ============================================
+// PRESTADORES LOGÍSTICOS
+// ============================================
+
+app.post('/api/logistics/register', authMiddleware, async (req, res) => {
+  try {
+    const { serviceType, vehicleType, coverageArea } = req.body;
+
+    if (!serviceType) {
+      return res.status(400).json({ error: 'Tipo de servicio es obligatorio' });
+    }
+
+    if (!LogisticsProvider) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const existingProvider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (existingProvider) {
+      return res.status(400).json({ error: 'Ya estás registrado como prestador' });
+    }
+
+    const provider = new LogisticsProvider({
+      user: req.user._id,
+      serviceType,
+      vehicleType: vehicleType || '',
+      coverageArea: coverageArea || '',
+      monthlyFee: 10,
+      commissionRate: 0.015
+    });
+
+    await provider.save();
+
+    req.user.logisticsProvider = true;
+    req.user.providerService = serviceType;
+    await req.user.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Registro exitoso. Completá la verificación facial y el pago.',
+      provider: {
+        id: provider._id,
+        serviceType: provider.serviceType,
+        verified: provider.verified,
+        paid: provider.paid
+      }
+    });
+  } catch (error) {
+    console.error('Error registrando prestador:', error);
+    res.status(500).json({ error: 'Error al registrar prestador' });
+  }
+});
+
+app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
+  try {
+    if (!LogisticsProvider) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const provider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (!provider) {
+      return res.status(404).json({ error: 'No estás registrado como prestador' });
+    }
+
+    provider.faceVerified = true;
+    await provider.save();
+
+    res.json({
+      success: true,
+      message: 'Verificación facial completada',
+      nextStep: 'payment'
+    });
+  } catch (error) {
+    console.error('Error en verificación facial:', error);
+    res.status(500).json({ error: 'Error en verificación' });
+  }
+});
+
+app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
+  try {
+    if (!LogisticsProvider) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const provider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (!provider) {
+      return res.status(404).json({ error: 'No estás registrado como prestador' });
+    }
+
+    if (!provider.faceVerified) {
+      return res.status(400).json({ error: 'Primero completá la verificación facial' });
+    }
+
+    provider.paid = true;
+    provider.verified = true;
+    provider.active = true;
+    provider.paymentDate = new Date();
+    await provider.save();
+
+    req.user.providerVerified = true;
+    req.user.providerPaid = true;
+    await req.user.save();
+
+    res.json({
+      success: true,
+      message: 'Pago procesado. ¡Ya podés ofrecer servicios!',
+      provider: {
+        verified: provider.verified,
+        active: provider.active,
+        serviceType: provider.serviceType
+      }
+    });
+  } catch (error) {
+    console.error('Error procesando pago:', error);
+    res.status(500).json({ error: 'Error al procesar pago' });
+  }
+});
+
+app.get('/api/logistics/status', authMiddleware, async (req, res) => {
+  try {
+    if (!LogisticsProvider) {
+      return res.json({ registered: false, error: 'DB no disponible' });
+    }
+
+    const provider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (!provider) {
+      return res.json({ registered: false });
+    }
+
+    res.json({
+      registered: true,
+      provider: {
+        id: provider._id,
+        serviceType: provider.serviceType,
+        verified: provider.verified,
+        faceVerified: provider.faceVerified,
+        paid: provider.paid,
+        active: provider.active,
+        rating: provider.rating,
+        completedServices: provider.completedServices
+      }
+    });
+  } catch (error) {
+    console.error('Error obteniendo estado:', error);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// ============================================
+// OFERTAS DE SERVICIO
+// ============================================
+
+app.post('/api/offers', authMiddleware, async (req, res) => {
+  try {
+    const { serviceType, title, description, fromLocation, toLocation, basePrice } = req.body;
+
+    if (!serviceType || !title || !description || !fromLocation || !toLocation || !basePrice) {
+      return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
+
+    if (!Offer) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const offer = new Offer({
+      client: req.user._id,
+      serviceType,
+      title,
+      description,
+      fromLocation,
+      toLocation,
+      basePrice: parseFloat(basePrice)
+    });
+
+    await offer.save();
+
+    res.status(201).json({
+      success: true,
+      offer: {
+        id: offer._id,
+        title: offer.title,
+        serviceType: offer.serviceType,
+        basePrice: offer.basePrice
+      }
+    });
+  } catch (error) {
+    console.error('Error creando oferta:', error);
+    res.status(500).json({ error: 'Error al crear oferta' });
+  }
+});
+
+app.get('/api/offers/available', authMiddleware, async (req, res) => {
+  try {
+    if (!LogisticsProvider || !Offer) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const provider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (!provider || !provider.active) {
+      return res.status(403).json({ error: 'No tenés acceso a ofertas' });
+    }
+
+    const offers = await Offer.find({
+      serviceType: provider.serviceType,
+      status: 'open',
+      expiresAt: { $gt: new Date() }
+    })
+    .populate('client', 'name avatar rating')
+    .sort({ createdAt: -1 })
+    .limit(50);
+
+    res.json({
+      success: true,
+      count: offers.length,
+      offers: offers.map(offer => ({
+        id: offer._id,
+        title: offer.title,
+        description: offer.description,
+        fromLocation: offer.fromLocation,
+        toLocation: offer.toLocation,
+        basePrice: offer.basePrice,
+        client: {
+          name: offer.client.name,
+          avatar: offer.client.avatar,
+          rating: offer.client.rating
+        },
+        createdAt: offer.createdAt,
+        expiresAt: offer.expiresAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error obteniendo ofertas:', error);
+    res.status(500).json({ error: 'Error al obtener ofertas' });
+  }
+});
+
+app.get('/api/offers/my-offers', authMiddleware, async (req, res) => {
+  try {
+    if (!Offer) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const offers = await Offer.find({ client: req.user._id })
+      .sort({ createdAt: -1 })
+      .populate('acceptedProvider');
+
+    res.json({ success: true, offers });
+  } catch (error) {
+    console.error('Error obteniendo mis ofertas:', error);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+// ============================================
+// PUJAS (BIDS)
+// ============================================
+
+app.post('/api/bids', authMiddleware, async (req, res) => {
+  try {
+    const { offerId, amount, message, estimatedTime } = req.body;
+
+    if (!offerId || !amount) {
+      return res.status(400).json({ error: 'Oferta y monto son obligatorios' });
+    }
+
+    if (!LogisticsProvider || !Offer || !Bid) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const provider = await LogisticsProvider.findOne({ user: req.user._id });
+    if (!provider || !provider.active) {
+      return res.status(403).json({ error: 'No podés pujar' });
+    }
+
+    const offer = await Offer.findById(offerId);
+    if (!offer || offer.status !== 'open') {
+      return res.status(404).json({ error: 'Oferta no disponible' });
+    }
+
+    const existingBid = await Bid.findOne({ offer: offerId, provider: provider._id });
+    if (existingBid) {
+      return res.status(400).json({ error: 'Ya enviaste una puja para esta oferta' });
+    }
+
+    const bid = new Bid({
+      offer: offerId,
+      provider: provider._id,
+      amount: parseFloat(amount),
+      message: message || '',
+      estimatedTime: estimatedTime || ''
+    });
+
+    await bid.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Puja enviada exitosamente',
+      bid: {
+        id: bid._id,
+        amount: bid.amount,
+        message: bid.message
+      }
+    });
+  } catch (error) {
+    console.error('Error enviando puja:', error);
+    res.status(500).json({ error: 'Error al enviar puja' });
+  }
+});
+
+app.get('/api/bids/:offerId', authMiddleware, async (req, res) => {
+  try {
+    if (!Offer || !Bid) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const offer = await Offer.findById(req.params.offerId);
+    if (!offer) {
+      return res.status(404).json({ error: 'Oferta no encontrada' });
+    }
+
+    if (offer.client.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'No tenés acceso a estas pujas' });
+    }
+
+    const bids = await Bid.find({ offer: req.params.offerId })
+      .populate('provider', 'serviceType rating completedServices')
+      .sort({ amount: 1 });
+
+    res.json({
+      success: true,
+      bids: bids.map(bid => ({
+        id: bid._id,
+        amount: bid.amount,
+        message: bid.message,
+        estimatedTime: bid.estimatedTime,
+        provider: {
+          serviceType: bid.provider.serviceType,
+          rating: bid.provider.rating,
+          completedServices: bid.provider.completedServices
+        },
+        createdAt: bid.createdAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error obteniendo pujas:', error);
+    res.status(500).json({ error: 'Error interno' });
+  }
+});
+
+app.post('/api/bids/:bidId/accept', authMiddleware, async (req, res) => {
+  try {
+    if (!Bid || !Offer || !Conversation) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const bid = await Bid.findById(req.params.bidId).populate('offer');
+    if (!bid) {
+      return res.status(404).json({ error: 'Puja no encontrada' });
+    }
+
+    const offer = bid.offer;
+    if (offer.client.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'No tenés permiso' });
+    }
+
+    bid.status = 'accepted';
+    await bid.save();
+
+    offer.status = 'in_progress';
+    offer.acceptedProvider = bid.provider;
+    offer.acceptedBid = bid._id;
+    await offer.save();
+
+    await Bid.updateMany(
+      { offer: offer._id, _id: { $ne: bid._id } },
+      { status: 'rejected' }
+    );
+
+    const conversation = new Conversation({
+      participants: [req.user._id, bid.provider.user],
+      relatedOffer: offer._id
+    });
+    await conversation.save();
+
+    res.json({
+      success: true,
+      message: 'Puja aceptada. Se creó el chat con el prestador.',
+      conversationId: conversation._id
+    });
+  } catch (error) {
+    console.error('Error aceptando puja:', error);
+    res.status(500).json({ error: 'Error al aceptar puja' });
+  }
+});
+
+// ============================================
+// CHAT
+// ============================================
+
+app.get('/api/chat/conversations', authMiddleware, async (req, res) => {
+  try {
+    if (!Conversation) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const conversations = await Conversation.find({
+      participants: req.user._id
+    })
+    .populate('participants', 'name avatar')
+    .populate('lastMessage')
+    .sort({ lastMessageAt: -1 });
+
+    res.json({
+      success: true,
+      conversations: conversations.map(conv => ({
+        id: conv._id,
+        participants: conv.participants.filter(p => p._id.toString() !== req.user._id.toString()),
+        lastMessage: conv.lastMessage,
+        lastMessageAt: conv.lastMessageAt
+      }))
+    });
+  } catch (error) {
+    console.error('Error obtenie
