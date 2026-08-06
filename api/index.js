@@ -1,38 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
-const multer = require('multer');
-const path = require('path');
-require('dotenv').config();
+const bcrypt = require('bcryptjs');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
 
-// Configuración de multer para uploads
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname));
-    }
-});
-const upload = multer({ storage });
-
-// Base de datos simulada (reemplazar con MongoDB/PostgreSQL)
-const db = {
-    users: [],
-    products: [],
-    conversations: [],
-    messages: [],
-    logisticsProviders: []
-};
+// Base de datos en memoria (simulada)
+let users = [];
+let products = [];
+let conversations = [];
+let messages = [];
 
 // Middleware de autenticación
 const authMiddleware = (req, res, next) => {
@@ -43,7 +22,7 @@ const authMiddleware = (req, res, next) => {
     }
     
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'tu-secreto-super-seguro-123');
         req.user = decoded;
         next();
     } catch (error) {
@@ -51,23 +30,19 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// ==================== RUTAS DE AUTENTICACIÓN ====================
+// ============ AUTENTICACIÓN ============
 
-// Registro
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password, phone, idNumber } = req.body;
         
-        // Verificar si el usuario existe
-        const existingUser = db.users.find(u => u.email === email);
+        const existingUser = users.find(u => u.email === email);
         if (existingUser) {
             return res.status(400).json({ error: 'El email ya está registrado' });
         }
         
-        // Hash de contraseña
         const hashedPassword = await bcrypt.hash(password, 10);
         
-        // Crear usuario
         const user = {
             id: Date.now().toString(),
             name,
@@ -79,18 +54,17 @@ app.post('/api/auth/register', async (req, res) => {
             logisticsProvider: false,
             createdAt: new Date(),
             avatar: null,
-            rating: 0,
+            rating: 5.0,
             posts: 0,
             sales: 0,
             messages: 0
         };
         
-        db.users.push(user);
+        users.push(user);
         
-        // Generar token
         const token = jwt.sign(
             { id: user.id, email: user.email },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'tu-secreto-super-seguro-123',
             { expiresIn: '7d' }
         );
         
@@ -106,16 +80,16 @@ app.post('/api/auth/register', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error en el servidor' });
     }
 });
 
-// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        const user = db.users.find(u => u.email === email);
+        const user = users.find(u => u.email === email);
         if (!user) {
             return res.status(400).json({ error: 'Credenciales inválidas' });
         }
@@ -125,10 +99,9 @@ app.post('/api/auth/login', async (req, res) => {
             return res.status(400).json({ error: 'Credenciales inválidas' });
         }
         
-        // Generar token
         const token = jwt.sign(
             { id: user.id, email: user.email },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'tu-secreto-super-seguro-123',
             { expiresIn: '7d' }
         );
         
@@ -145,13 +118,13 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error en el servidor' });
     }
 });
 
-// Verificar token
 app.get('/api/auth/verify', authMiddleware, (req, res) => {
-    const user = db.users.find(u => u.id === req.user.id);
+    const user = users.find(u => u.id === req.user.id);
     if (!user) {
         return res.status(404).json({ error: 'Usuario no encontrado' });
     }
@@ -161,17 +134,27 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
         name: user.name,
         email: user.email,
         verified: user.verified,
-        logisticsProvider: user.logisticsProvider,
-        avatar: user.avatar
+        logisticsProvider: user.logisticsProvider
     });
 });
 
-// ==================== RUTAS DE MARKETPLACE ====================
+// ============ USUARIO ============
 
-// Obtener productos
+app.get('/api/user/profile', authMiddleware, (req, res) => {
+    const user = users.find(u => u.id === req.user.id);
+    if (!user) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+    }
+    
+    const { password, ...userWithoutPassword } = user;
+    res.json(userWithoutPassword);
+});
+
+// ============ MARKETPLACE ============
+
 app.get('/api/marketplace/products', (req, res) => {
-    const productsWithSeller = db.products.map(product => {
-        const seller = db.users.find(u => u.id === product.sellerId);
+    const productsWithSeller = products.map(product => {
+        const seller = users.find(u => u.id === product.sellerId);
         return {
             ...product,
             seller: {
@@ -188,10 +171,9 @@ app.get('/api/marketplace/products', (req, res) => {
     res.json(productsWithSeller);
 });
 
-// Crear producto
-app.post('/api/marketplace/products', authMiddleware, upload.array('images', 5), (req, res) => {
+app.post('/api/marketplace/products', authMiddleware, (req, res) => {
     try {
-        const { title, category, price, description } = req.body;
+        const { title, category, price, description, images } = req.body;
         
         const product = {
             id: Date.now().toString(),
@@ -200,37 +182,34 @@ app.post('/api/marketplace/products', authMiddleware, upload.array('images', 5),
             price: parseFloat(price),
             description,
             sellerId: req.user.id,
-            images: req.files.map(f => `/uploads/${f.filename}`),
+            images: images || ['/assets/default-product.jpg'],
             views: 0,
             favorites: 0,
             createdAt: new Date(),
             status: 'active'
         };
         
-        db.products.push(product);
+        products.push(product);
         
-        // Actualizar contador de posts del usuario
-        const user = db.users.find(u => u.id === req.user.id);
+        const user = users.find(u => u.id === req.user.id);
         if (user) {
             user.posts = (user.posts || 0) + 1;
         }
         
         res.json({ success: true, product });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error al crear producto' });
     }
 });
 
-// Obtener producto por ID
 app.get('/api/marketplace/products/:id', (req, res) => {
-    const product = db.products.find(p => p.id === req.params.id);
+    const product = products.find(p => p.id === req.params.id);
     if (!product) {
         return res.status(404).json({ error: 'Producto no encontrado' });
     }
     
-    const seller = db.users.find(u => u.id === product.sellerId);
-    
-    // Incrementar vistas
+    const seller = users.find(u => u.id === product.sellerId);
     product.views = (product.views || 0) + 1;
     
     res.json({
@@ -246,19 +225,18 @@ app.get('/api/marketplace/products/:id', (req, res) => {
     });
 });
 
-// ==================== RUTAS DE CHAT ====================
+// ============ CHAT ============
 
-// Obtener conversaciones
 app.get('/api/chat/conversations', authMiddleware, (req, res) => {
-    const userConversations = db.conversations.filter(
+    const userConversations = conversations.filter(
         c => c.participant1 === req.user.id || c.participant2 === req.user.id
     );
     
-    const conversationsWithDetails = userConversations.map(conv => {
+    const result = userConversations.map(conv => {
         const otherUserId = conv.participant1 === req.user.id ? 
             conv.participant2 : conv.participant1;
-        const otherUser = db.users.find(u => u.id === otherUserId);
-        const lastMessage = db.messages
+        const otherUser = users.find(u => u.id === otherUserId);
+        const lastMessage = messages
             .filter(m => m.conversationId === conv.id)
             .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
         
@@ -270,43 +248,39 @@ app.get('/api/chat/conversations', authMiddleware, (req, res) => {
         };
     });
     
-    res.json(conversationsWithDetails);
+    res.json(result);
 });
 
-// Obtener conversación específica
 app.get('/api/chat/conversation/:userId', authMiddleware, (req, res) => {
     const otherUserId = req.params.userId;
     
-    let conversation = db.conversations.find(
+    let conversation = conversations.find(
         c => (c.participant1 === req.user.id && c.participant2 === otherUserId) ||
              (c.participant1 === otherUserId && c.participant2 === req.user.id)
     );
     
     if (!conversation) {
-        // Crear nueva conversación
         conversation = {
             id: Date.now().toString(),
             participant1: req.user.id,
             participant2: otherUserId,
             createdAt: new Date()
         };
-        db.conversations.push(conversation);
+        conversations.push(conversation);
     }
     
-    const messages = db.messages
+    const msgs = messages
         .filter(m => m.conversationId === conversation.id)
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
     
-    res.json(messages);
+    res.json(msgs);
 });
 
-// Enviar mensaje
 app.post('/api/chat/send', authMiddleware, (req, res) => {
     try {
         const { recipientId, content } = req.body;
         
-        // Encontrar o crear conversación
-        let conversation = db.conversations.find(
+        let conversation = conversations.find(
             c => (c.participant1 === req.user.id && c.participant2 === recipientId) ||
                  (c.participant1 === recipientId && c.participant2 === req.user.id)
         );
@@ -318,7 +292,7 @@ app.post('/api/chat/send', authMiddleware, (req, res) => {
                 participant2: recipientId,
                 createdAt: new Date()
             };
-            db.conversations.push(conversation);
+            conversations.push(conversation);
         }
         
         const message = {
@@ -330,104 +304,39 @@ app.post('/api/chat/send', authMiddleware, (req, res) => {
             read: false
         };
         
-        db.messages.push(message);
-        
-        // Actualizar contador de mensajes
-        const user = db.users.find(u => u.id === req.user.id);
-        if (user) {
-            user.messages = (user.messages || 0) + 1;
-        }
+        messages.push(message);
         
         res.json({ success: true, message });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error al enviar mensaje' });
     }
 });
 
-// ==================== RUTAS DE LOGÍSTICA ====================
+// ============ LOGÍSTICA ============
 
-// Registro como proveedor de logística
 app.post('/api/logistics/register', authMiddleware, (req, res) => {
     try {
         const { serviceType, vehicleType, coverageArea } = req.body;
         
-        const provider = {
-            userId: req.user.id,
-            serviceType, // 'moto', 'remis', 'flete', 'larga-distancia'
-            vehicleType,
-            coverageArea,
-            monthlyFee: 10,
-            commissionRate: 0.015, // 1.5%
-            verified: false,
-            active: false,
-            registeredAt: new Date()
-        };
-        
-        db.logisticsProviders.push(provider);
-        
-        // Actualizar usuario
-        const user = db.users.find(u => u.id === req.user.id);
+        const user = users.find(u => u.id === req.user.id);
         if (user) {
             user.logisticsProvider = true;
+            user.verified = true;
         }
         
-        // Aquí se integraría con Stripe/PayPal para el pago
-        const paymentUrl = '/api/payment/create-session';
-        
-        res.json({ success: true, paymentUrl });
+        res.json({ 
+            success: true, 
+            message: 'Registro como proveedor de logística exitoso',
+            monthlyFee: 10,
+            commissionRate: 0.015
+        });
     } catch (error) {
+        console.error(error);
         res.status(500).json({ error: 'Error al registrar proveedor' });
     }
 });
 
-// Verificar estado de pago
-app.get('/api/logistics/payment-status', authMiddleware, (req, res) => {
-    const provider = db.logisticsProviders.find(p => p.userId === req.user.id);
-    
-    if (!provider) {
-        return res.json({ hasProvider: false });
-    }
-    
-    res.json({
-        hasProvider: true,
-        active: provider.active,
-        verified: provider.verified,
-        serviceType: provider.serviceType
-    });
-});
-
-// ==================== RUTAS DE USUARIO ====================
-
-// Obtener perfil de usuario
-app.get('/api/user/profile', authMiddleware, (req, res) => {
-    const user = db.users.find(u => u.id === req.user.id);
-    if (!user) {
-        return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    
-    // No enviar contraseña
-    const { password, ...userWithoutPassword } = user;
-    res.json(userWithoutPassword);
-});
-
-// Actualizar perfil
-app.put('/api/user/profile', authMiddleware, (req, res) => {
-    try {
-        const user = db.users.find(u => u.id === req.user.id);
-        if (!user) {
-            return res.status(404).json({ error: 'Usuario no encontrado' });
-        }
-        
-        Object.assign(user, req.body);
-        res.json({ success: true, user });
-    } catch (error) {
-        res.status(500).json({ error: 'Error al actualizar perfil' });
-    }
-});
-
-// Iniciar servidor
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// ============ EXPORTAR PARA VERCEL ============
 
 module.exports = app;
