@@ -702,4 +702,9 @@ app.get('/api/chat/conversations', authMiddleware, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Error obtenie
+    console.error('Error obteniendo conversaciones:', error);
+    res.status(500).json({ error: 'Error al obtener conversaciones' });
+  }
+});
+
+module.exports = app;
