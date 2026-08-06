@@ -1,1 +1,18 @@
+{
+  "name": "pase-y-mire-v2",
+  "version": "1.0.0",
+  "description": "El espacio mas libre",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev": "vercel dev"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {},
+  "keywords": ["vercel", "api", "dashboard"],
+  "author": "",
+  "license": "MIT"
+}
 
