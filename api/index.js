@@ -100,8 +100,12 @@ const authMiddleware = async (req, res, next) => {
 };
 
 // ============================================
-// RUTA DE PRUEBA
+// RUTAS INICIALES Y PRUEBA
 // ============================================
+app.get('/', (req, res) => {
+  res.send('API PyM (Pase y Mire) funcionando correctamente');
+});
+
 app.get('/api/test', (req, res) => {
   res.json({ 
     success: true, 
@@ -178,8 +182,7 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-
-app.post('/api/auth/login', async (req, res) => {
+      app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -357,8 +360,7 @@ app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Error en verificación' });
   }
 });
-
-app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
+    app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
   try {
     if (!LogisticsProvider) {
       return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -532,8 +534,7 @@ app.get('/api/offers/my-offers', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
-
-// ============================================
+          // ============================================
 // PUJAS (BIDS)
 // ============================================
 
@@ -708,3 +709,4 @@ app.get('/api/chat/conversations', authMiddleware, async (req, res) => {
 });
 
 module.exports = app;
+  
