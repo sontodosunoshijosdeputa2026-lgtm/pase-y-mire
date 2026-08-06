@@ -1,6 +1,6 @@
 // ============================================
 // API COMPLETA - PyM (Pase y Mire)
-// Con MongoDB Atlas y Cloudinary
+// Con MongoDB Atlas, Cloudinary y SendGrid
 // ============================================
 
 const express = require('express');
@@ -8,6 +8,7 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const connectDB = require('../db/connect');
+const { sendWelcomeEmail } = require('../utils/sendgrid');
 
 // Importar modelos
 const User = require('../models/User');
@@ -67,9 +68,10 @@ const authMiddleware = async (req, res, next) => {
 app.get('/api/test', (req, res) => {
   res.json({ 
     success: true, 
-    message: 'API PyM funcionando con MongoDB y Cloudinary',
+    message: 'API PyM funcionando con MongoDB, Cloudinary y SendGrid',
     timestamp: new Date().toISOString(),
-    cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? 'Configurado' : 'No configurado'
+    cloudinary: process.env.CLOUDINARY_CLOUD_NAME ? 'Configurado' : 'No configurado',
+    sendgrid: process.env.SENDGRID_API_KEY ? 'Configurado' : 'No configurado'
   });
 });
 
@@ -106,6 +108,9 @@ app.post('/api/auth/register', async (req, res) => {
     });
 
     await user.save();
+
+    // Enviar email de bienvenida (no bloqueante)
+    sendWelcomeEmail(user.email, user.name);
 
     const token = jwt.sign(
       { id: user._id, email: user.email },
@@ -650,63 +655,3 @@ app.get('/api/chat/conversation/:conversationId', authMiddleware, async (req, re
     
     if (!conversation) {
       return res.status(404).json({ error: 'Conversación no encontrada' });
-    }
-
-    if (!conversation.participants.includes(req.user._id)) {
-      return res.status(403).json({ error: 'No tenés acceso' });
-    }
-
-    const messages = await Message.find({
-      conversation: req.params.conversationId
-    })
-    .populate('sender', 'name avatar')
-    .sort({ createdAt: 1 });
-
-    res.json({
-      success: true,
-      messages
-    });
-  } catch (error) {
-    console.error('Error obteniendo mensajes:', error);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-// Enviar mensaje
-app.post('/api/chat/send', authMiddleware, async (req, res) => {
-  try {
-    const { conversationId, content, type } = req.body;
-
-    if (!conversationId || !content) {
-      return res.status(400).json({ error: 'Conversación y contenido son obligatorios' });
-    }
-
-    const conversation = await Conversation.findById(conversationId);
-    if (!conversation) {
-      return res.status(404).json({ error: 'Conversación no encontrada' });
-    }
-
-    if (!conversation.participants.includes(req.user._id)) {
-      return res.status(403).json({ error: 'No tenés acceso' });
-    }
-
-    const message = new Message({
-      conversation: conversationId,
-      sender: req.user._id,
-      content,
-      type: type || 'text'
-    });
-
-    await message.save();
-
-    // Actualizar última mensaje de la conversación
-    conversation.lastMessage = message._id;
-    conversation.lastMessageAt = new Date();
-    await conversation.save();
-
-    res.status(201).json({
-      success: true,
-      message: {
-        id: message._id,
-        content: message.content,
-        sender: req.user._id,
