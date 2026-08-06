@@ -1,83 +1,187 @@
-const API_URL = '/api';
+// Sistema de autenticación completo
+const authService = {
+    // Registro de usuario
+    async register(userData) {
+        try {
+            const response = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            } else {
+                const error = await response.json();
+                return { success: false, error: error.message };
+            }
+        } catch (error) {
+            return { success: false, error: 'Error de conexión' };
+        }
+    },
 
-function getToken() {
-  return localStorage.getItem('token');
-}
+    // Login
+    async login(email, password) {
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email, password })
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                return { success: true, user: data.user };
+            } else {
+                const error = await response.json();
+                return { success: false, error: error.message };
+            }
+        } catch (error) {
+            return { success: false, error: 'Error de conexión' };
+        }
+    },
 
-function setToken(token) {
-  localStorage.setItem('token', token);
-}
+    // Logout
+    logout() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/index.html';
+    },
 
-function removeToken() {
-  localStorage.removeItem('token');
-}
+    // Verificar token
+    async verifyToken() {
+        const token = localStorage.getItem('token');
+        if (!token) return null;
+        
+        try {
+            const response = await fetch('/api/auth/verify', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Token verification failed:', error);
+        }
+        return null;
+    },
 
-async function login(username, password) {
-  try {
-    const res = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success) {
-      setToken(data.token);
-      window.location.href = 'dashboard.html';
-    } else {
-      showError(data.message || 'Error al iniciar sesion');
+    // Solicitar verificación de perfil
+    async requestVerification documents) {
+        try {
+            const formData = new FormData();
+            documents.forEach(doc => {
+                formData.append('documents', doc);
+            });
+            
+            const response = await fetch('/api/auth/request-verification', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: formData
+            });
+            
+            return response.ok;
+        } catch (error) {
+            console.error('Verification request failed:', error);
+            return false;
+        }
+    },
+
+    // Registro como proveedor de logística
+    async registerLogisticsProvider(providerData) {
+        try {
+            const response = await fetch('/api/logistics/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify(providerData)
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return { success: true, paymentUrl: data.paymentUrl };
+            } else {
+                const error = await response.json();
+                return { success: false, error: error.message };
+            }
+        } catch (error) {
+            return { success: false, error: 'Error de conexión' };
+        }
+    },
+
+    // Verificar estado de pago
+    async checkPaymentStatus() {
+        try {
+            const response = await fetch('/api/logistics/payment-status', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            
+            if (response.ok) {
+                return await response.json();
+            }
+        } catch (error) {
+            console.error('Payment status check failed:', error);
+        }
+        return null;
     }
-  } catch {
-    showError('Error de conexion');
-  }
-}
+};
 
-async function verifyToken() {
-  const token = getToken();
-  if (!token) return false;
-  try {
-    const res = await fetch(`${API_URL}/verify`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-function logout() {
-  removeToken();
-  window.location.href = 'index.html';
-}
-
-function showError(msg) {
-  const el = document.getElementById('errorMsg');
-  if (el) el.textContent = msg;
-}
-
-// Login form
-const loginForm = document.getElementById('loginForm');
-if (loginForm) {
-  loginForm.addEventListener('submit', (e) => {
+// Funciones globales para los formularios
+async function handleLogin(e) {
     e.preventDefault();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    login(username, password);
-  });
-}
-
-// Logout button
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
-  logoutBtn.addEventListener('click', logout);
-}
-
-// Proteger dashboard
-if (window.location.pathname.includes('dashboard')) {
-  verifyToken().then(ok => {
-    if (!ok) {
-      removeToken();
-      window.location.href = 'index.html';
+    
+    const email = e.target.email.value;
+    const password = e.target.password.value;
+    
+    const result = await authService.login(email, password);
+    
+    if (result.success) {
+        window.location.href = '/marketplace.html';
+    } else {
+        alert(result.error);
     }
-  });
 }
-  
+
+async function handleRegister(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const userData = {
+        name: formData.get('name'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+        phone: formData.get('phone'),
+        idNumber: formData.get('idNumber')
+    };
+    
+    const result = await authService.register(userData);
+    
+    if (result.success) {
+        window.location.href = '/marketplace.html';
+    } else {
+        alert(result.error);
+    }
+}
+
+// Exportar para uso en módulos
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = authService;
+                  }
