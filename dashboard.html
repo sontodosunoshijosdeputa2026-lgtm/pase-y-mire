@@ -1,1 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pase y Mire - Dashboard</title>
+  <link rel="stylesheet" href="public/css/variables.css">
+  <link rel="stylesheet" href="public/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Pase y Mire</div>
+    <div class="nav-user">
+      <span id="userName">Usuario</span>
+      <button id="logoutBtn" class="btn-small">Salir</button>
+    </div>
+  </nav>
+
+  <main class="dashboard">
+    <h2>Dashboard</h2>
+    <div class="cards">
+      <div class="card">
+        <h3>Visitas</h3>
+        <p class="number" id="visitas">0</p>
+      </div>
+      <div class="card">
+        <h3>Usuarios</h3>
+        <p class="number" id="usuarios">0</p>
+      </div>
+      <div class="card">
+        <h3>Posts</h3>
+        <p class="number" id="posts">0</p>
+      </div>
+    </div>
+    <div class="welcome-msg">
+      <p id="mensaje">Cargando...</p>
+    </div>
+  </main>
+
+  <script src="public/js/auth.js"></script>
+  <script src="public/js/app.js"></script>
+</body>
+</html>
 
