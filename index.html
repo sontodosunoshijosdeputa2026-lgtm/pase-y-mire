@@ -3,30 +3,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire - Login</title>
+  <title>Pase y Mire - Ingresar</title>
   <link rel="stylesheet" href="public/css/variables.css">
   <link rel="stylesheet" href="public/css/style.css">
 </head>
 <body>
   <div class="container">
     <div class="login-box">
-      <h1>Pase y Mire</h1>
-      <p class="subtitle">El espacio mas libre</p>
+      <div class="logo">
+        <h1>Pase y Mire</h1>
+        <p class="subtitle">El espacio más libre</p>
+      </div>
+
       <form id="loginForm">
         <div class="input-group">
           <label for="username">Usuario</label>
-          <input type="text" id="username" name="username" required placeholder="admin">
+          <input type="text" id="username" name="username" required placeholder="Tu usuario" autocomplete="username">
         </div>
         <div class="input-group">
-          <label for="password">Contrasena</label>
-          <input type="password" id="password" name="password" required placeholder="******">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" name="password" required placeholder="••••••••" autocomplete="current-password">
         </div>
-        <button type="submit" class="btn-primary">Ingresar</button>
+        <button type="submit" class="btn-primary">Ingresar al flujo</button>
         <p id="errorMsg" class="error"></p>
       </form>
+
+      <p class="footer-text">Acceso exclusivo</p>
     </div>
   </div>
   <script src="public/js/auth.js"></script>
 </body>
-  </html>
-
+</html>
