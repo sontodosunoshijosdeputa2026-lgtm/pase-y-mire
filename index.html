@@ -13,54 +13,54 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: var(--spacing-lg);
+            padding: 1rem;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
         
         .auth-box {
             background: white;
-            border-radius: var(--border-radius-xl);
-            padding: var(--spacing-2xl);
-            box-shadow: var(--shadow-xl);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 450px;
         }
         
         .auth-header {
             text-align: center;
-            margin-bottom: var(--spacing-2xl);
+            margin-bottom: 2rem;
         }
         
         .auth-header h1 {
-            color: var(--primary);
-            font-size: var(--font-size-3xl);
-            margin-bottom: var(--spacing-sm);
+            color: #6366f1;
+            font-size: 1.875rem;
+            margin-bottom: 0.5rem;
         }
         
         .auth-header p {
-            color: var(--gray-600);
+            color: #4b5563;
         }
         
         .auth-tabs {
             display: flex;
-            gap: var(--spacing-md);
-            margin-bottom: var(--spacing-xl);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
         }
         
         .auth-tab {
             flex: 1;
-            padding: var(--spacing-md);
+            padding: 0.75rem;
             border: none;
-            background: var(--gray-100);
-            color: var(--gray-600);
+            background: #f3f4f6;
+            color: #4b5563;
             font-weight: 600;
             cursor: pointer;
-            border-radius: var(--border-radius-md);
-            transition: var(--transition-base);
+            border-radius: 0.5rem;
+            transition: all 0.3s;
         }
         
         .auth-tab.active {
-            background: var(--primary);
+            background: #6366f1;
             color: white;
         }
         
@@ -72,10 +72,46 @@
             display: block;
         }
         
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #6366f1;
+        }
+        
+        .btn-primary {
+            width: 100%;
+            padding: 0.75rem;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        
         .form-divider {
             text-align: center;
-            margin: var(--spacing-xl) 0;
-            color: var(--gray-500);
+            margin: 1.5rem 0;
+            color: #6b7280;
             position: relative;
         }
         
@@ -86,27 +122,37 @@
             left: 0;
             right: 0;
             height: 1px;
-            background: var(--gray-200);
+            background: #e5e7eb;
         }
         
         .form-divider span {
             background: white;
-            padding: 0 var(--spacing-md);
+            padding: 0 1rem;
             position: relative;
         }
         
         .security-badges {
             display: flex;
             justify-content: center;
-            gap: var(--spacing-lg);
-            margin-top: var(--spacing-xl);
-            color: var(--gray-500);
-            font-size: var(--font-size-sm);
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+            color: #6b7280;
+            font-size: 0.875rem;
         }
         
         .security-badges i {
-            color: var(--success);
-            margin-right: var(--spacing-xs);
+            color: #10b981;
+            margin-right: 0.25rem;
+        }
+        
+        .info-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #92400e;
         }
     </style>
 </head>
@@ -135,13 +181,16 @@
                     <input type="password" name="password" required>
                 </div>
                 
-                <button type="submit" class="btn-primary" style="width: 100%;">
-                    Ingresar
-                </button>
+                <button type="submit" class="btn-primary">Ingresar</button>
             </form>
             
             <!-- Register Form -->
             <form id="registerForm" class="auth-form" onsubmit="handleRegister(event)">
+                <div class="info-box">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>Nota:</strong> Tu cuenta se creará inmediatamente. La verificación por email estará disponible próximamente.
+                </div>
+                
                 <div class="form-group">
                     <label>Nombre Completo</label>
                     <input type="text" name="name" required>
@@ -163,21 +212,19 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" name="password" required>
+                    <label>Contraseña (mínimo 6 caracteres)</label>
+                    <input type="password" name="password" minlength="6" required>
                 </div>
                 
-                <button type="submit" class="btn-primary" style="width: 100%;">
-                    Crear Cuenta
-                </button>
+                <button type="submit" class="btn-primary">Crear Cuenta</button>
             </form>
             
             <div class="form-divider">
                 <span>o</span>
             </div>
             
-            <button class="btn-secondary" style="width: 100%; margin-bottom: var(--spacing-md);">
-                <i class="fab fa-google"></i> Continuar con Google
+            <button class="btn-secondary" style="opacity: 0.5; cursor: not-allowed;" disabled>
+                <i class="fab fa-google"></i> Google (Próximamente)
             </button>
             
             <div class="security-badges">
@@ -202,25 +249,84 @@
             }
         }
         
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const email = formData.get('email');
+            const password = formData.get('password');
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/marketplace.html';
+                } else {
+                    alert(data.error || 'Error al iniciar sesión');
+                }
+            } catch (error) {
+                alert('Error de conexión. Inténtalo más tarde.');
+            }
+        }
+        
+        async function handleRegister(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userData = {
+                name: formData.get('name'),
+                email: formData.get('email'),
+                password: formData.get('password'),
+                phone: formData.get('phone'),
+                idNumber: formData.get('idNumber')
+            };
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/marketplace.html';
+                } else {
+                    alert(data.error || 'Error al registrar');
+                }
+            } catch (error) {
+                alert('Error de conexión. Inténtalo más tarde.');
+            }
+        }
+        
         // Verificar si ya hay sesión
         window.addEventListener('load', async () => {
             const token = localStorage.getItem('token');
             if (token) {
                 try {
-                    const response = await fetch('/api/user/profile', {
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        }
+                    const response = await fetch('/api/auth/verify', {
+                        headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (response.ok) {
                         window.location.href = '/marketplace.html';
                     }
                 } catch (error) {
-                    console.error('Error verifying token:', error);
+                    console.error('Error verificando token:', error);
                 }
             }
         });
     </script>
 </body>
-                        </html>
+                </html>
