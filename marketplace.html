@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pase y Mire - Marketplace</title>
+  <link rel="stylesheet" href="public/css/variables.css">
+  <link rel="stylesheet" href="public/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Pase y Mire</div>
+    <div class="nav-links">
+      <a href="marketplace.html" class="nav-link active">Marketplace</a>
+      <a href="dashboard.html" class="nav-link">Dashboard</a>
+    </div>
+    <div class="nav-user">
+      <span id="userName">Admin</span>
+      <button id="logoutBtn" class="btn-small">Salir</button>
+    </div>
+  </nav>
+
+  <main class="marketplace">
+    <div class="marketplace-header">
+      <div>
+        <h1>Marketplace</h1>
+        <p class="subtitle">Productos cerca tuyo · Espacio libre</p>
+      </div>
+      <button class="btn-primary btn-publish" id="btnPublish">+ Publicar</button>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">Todos</button>
+      <button class="filter-btn" data-filter="patrocinado">Patrocinados</button>
+      <button class="filter-btn" data-filter="organico">Orgánicos</button>
+      <button class="filter-btn" data-filter="cerca">Cerca de mí</button>
+    </div>
+
+    <!-- Grid de productos -->
+    <div class="products-grid" id="productsGrid">
+      <!-- Los productos se cargan con JS -->
+    </div>
+  </main>
+
+  <script src="public/js/auth.js"></script>
+  <script src="public/js/marketplace.js"></script>
+</body>
+        </html>
