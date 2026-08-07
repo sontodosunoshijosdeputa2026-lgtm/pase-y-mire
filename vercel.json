@@ -2,6 +2,10 @@
   "version": 2,
   "builds": [
     {
+      "src": "index.html",
+      "use": "@vercel/static"
+    },
+    {
       "src": "api/index.js",
       "use": "@vercel/node"
     }
@@ -15,6 +19,5 @@
       "src": "/(.*)",
       "dest": "/$1"
     }
-  ],
-  "public": true
+  ]
 }
