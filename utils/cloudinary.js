@@ -1,13 +1,11 @@
 const cloudinary = require('cloudinary').v2;
 
-// Configurar Cloudinary con las variables de entorno
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  cloud_name: 'bnhdeqaw',
+  api_key: '934761867522257',
+  api_secret: 'p2gCjEAPXyXVSzshr41YR-qaQH8'
 });
 
-// Subir imagen desde buffer
 const uploadImage = async (fileBuffer, folder = 'pym') => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -32,12 +30,10 @@ const uploadImage = async (fileBuffer, folder = 'pym') => {
   });
 };
 
-// Eliminar imagen por public_id
 const deleteImage = async (publicId) => {
   return await cloudinary.uploader.destroy(publicId);
 };
 
-// Obtener URL de avatar optimizada
 const getAvatarUrl = (publicId) => {
   return cloudinary.url(publicId, {
     transformation: [
