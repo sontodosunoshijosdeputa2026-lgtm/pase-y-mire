@@ -16,7 +16,7 @@ let User, LogisticsProvider, Offer, Bid, Message, Conversation;
 const connectDB = async () => {
   try {
     mongoose = require('mongoose');
-    await mongoose.connect(process.env.MONGODB_URI, {
+    await mongoose.connect('mongodb+srv://app_user:LX3VRPUrxzzkDfY@cluster0.w3jvskh.mongodb.net/?appName=Cluster0', {
       serverSelectionTimeoutMS: 5000
     });
     console.log('MongoDB conectado');
@@ -459,3 +459,4 @@ app.post('/api/webhooks/mercadopago', async (req, res) => {
 });
 
 module.exports = app;
+                      
