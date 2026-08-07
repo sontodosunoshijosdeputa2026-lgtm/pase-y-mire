@@ -1,706 +1,379 @@
-// ============================================
-// API COMPLETA - PyM (Pase y Mire)
-// Versión robusta con manejo de errores
-// ============================================
-
-const express = require('express');
-const cors = require('cors');
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
-
-const app = express();
-
-// Middlewares
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-
-// JWT Secret
-const JWT_SECRET = process.env.JWT_SECRET || 'tradehub-secret-key-2024';
-
-// ============================================
-// CONEXIÓN A MONGODB (con manejo de errores)
-// ============================================
-let mongoose;
-let User, LogisticsProvider, Offer, Bid, Message, Conversation;
-
-const connectDB = async () => {
-  try {
-    mongoose = require('mongoose');
-    await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000
-    });
-    console.log('✅ MongoDB conectado');
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyM - Pase y Mire | El Espacio más Libre</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .auth-box {
+            background: white;
+            border-radius: 1.5rem;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 450px;
+        }
+        .brand-header { text-align: center; margin-bottom: 2rem; }
+        .logo-container {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin-bottom: 1rem;
+        }
+        .logo-text { color: white; font-size: 1.8rem; font-weight: 900; }
+        .brand-name {
+            font-size: 1.75rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.25rem;
+        }
+        .brand-slogan { color: #6b7280; font-size: 0.95rem; font-style: italic; }
+        .auth-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background: #f3f4f6;
+            padding: 0.25rem;
+            border-radius: 0.75rem;
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .auth-tab.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.9rem;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            font-size: 1rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .btn-primary:disabled { opacity: 0.6; }
+        .message {
+            padding: 0.875rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            display: none;
+        }
+        .message.error {
+            background: #fee2e2;
+            border-left: 4px solid #ef4444;
+            color: #991b1b;
+        }
+        .message.success {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            color: #065f46;
+        }
+        .message.show { display: block; }
+        .debug-box {
+            margin-top: 1rem;
+            padding: 0.5rem;
+            background: #1f2937;
+            color: #10b981;
+            font-family: monospace;
+            font-size: 0.7rem;
+            border-radius: 0.5rem;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+        }
+        .debug-box.show { display: block; }
+        .debug-toggle {
+            margin-top: 1rem;
+            background: none;
+            border: 1px solid #d1d5db;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+            cursor: pointer;
+            width: 100%;
+        }
+        .brand-footer {
+            text-align: center;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-box">
+        <div class="brand-header">
+            <div class="logo-container">
+                <span class="logo-text">PyM</span>
+            </div>
+            <h1 class="brand-name">Pase y Mire</h1>
+            <p class="brand-slogan">✨ El Espacio más Libre</p>
+        </div>
+        
+        <div class="auth-tabs">
+            <button class="auth-tab active" onclick="showTab('login')">Iniciar Sesión</button>
+            <button class="auth-tab" onclick="showTab('register')">Registrarse</button>
+        </div>
+        
+        <div class="message error" id="errorMsg"></div>
+        <div class="message success" id="successMsg"></div>
+        
+        <!-- LOGIN -->
+        <form id="loginForm" class="auth-form active">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" required placeholder="tu@email.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="loginPassword" required placeholder="••••••••">
+            </div>
+            <button type="button" class="btn-primary" onclick="doLogin()">Ingresar</button>
+        </form>
+        
+        <!-- REGISTER -->
+        <form id="registerForm" class="auth-form">
+            <div class="form-group">
+                <label>Nombre Completo</label>
+                <input type="text" id="regName" required placeholder="Juan Pérez">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="regEmail" required placeholder="tu@email.com">
+            </div>
+            <div class="form-group">
+                <label>Teléfono</label>
+                <input type="tel" id="regPhone" required placeholder="+54 11 1234-5678">
+            </div>
+            <div class="form-group">
+                <label>DNI/CUIT</label>
+                <input type="text" id="regDni" required placeholder="12345678">
+            </div>
+            <div class="form-group">
+                <label>Contraseña (mín 6)</label>
+                <input type="password" id="regPassword" minlength="6" required placeholder="••••••••">
+            </div>
+            <button type="button" class="btn-primary" onclick="doRegister()">Crear Cuenta</button>
+        </form>
+        
+        <button class="debug-toggle" onclick="toggleDebug()">
+            <i class="fas fa-bug"></i> Mostrar/Ocultar Debug
+        </button>
+        <div class="debug-box" id="debugBox"></div>
+        
+        <div class="brand-footer">
+            <p><strong>PyM</strong> · Pase y Mire · El Espacio más Libre</p>
+        </div>
+    </div>
     
-    // Cargar modelos
-    User = require('../models/User');
-    LogisticsProvider = require('../models/LogisticsProvider');
-    Offer = require('../models/Offer');
-    Bid = require('../models/Bid');
-    Message = require('../models/Message');
-    Conversation = require('../models/Conversation');
-  } catch (error) {
-    console.error('❌ Error MongoDB:', error.message);
-  }
-};
-
-connectDB();
-
-// ============================================
-// CLOUDINARY (opcional)
-// ============================================
-let uploadRouter;
-try {
-  uploadRouter = require('./upload');
-  app.use('/api/upload', uploadRouter);
-  console.log('✅ Cloudinary cargado');
-} catch (error) {
-  console.log('⚠️ Cloudinary no disponible:', error.message);
-}
-
-// ============================================
-// SENDGRID (opcional)
-// ============================================
-let sendWelcomeEmail;
-try {
-  const sendgrid = require('../utils/sendgrid');
-  sendWelcomeEmail = sendgrid.sendWelcomeEmail;
-  console.log('✅ SendGrid cargado');
-} catch (error) {
-  console.log('⚠️ SendGrid no disponible:', error.message);
-  sendWelcomeEmail = async () => console.log('Email simulado');
-}
-
-// ============================================
-// MIDDLEWARE DE AUTENTICACIÓN
-// ============================================
-const authMiddleware = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'No autorizado - Token requerido' });
-    }
-    
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    
-    if (!User) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-    
-    const user = await User.findById(decoded.id);
-    if (!user) {
-      return res.status(401).json({ error: 'Usuario no encontrado' });
-    }
-    
-    req.user = user;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Token inválido o expirado' });
-  }
-};
-
-// ============================================
-// RUTA DE PRUEBA
-// ============================================
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    success: true, 
-    message: 'API PyM funcionando',
-    timestamp: new Date().toISOString(),
-    mongodb: mongoose && mongoose.connection.readyState === 1 ? 'Conectado' : 'Desconectado',
-    cloudinary: !!uploadRouter,
-    sendgrid: !!sendWelcomeEmail
-  });
-});
-
-// ============================================
-// AUTENTICACIÓN
-// ============================================
-
-// Registro
-app.post('/api/auth/register', async (req, res) => {
-  try {
-    const { name, email, password, phone, idNumber } = req.body;
-
-    if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Nombre, email y contraseña son obligatorios' });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' });
-    }
-
-    if (!User) {
-      return res.status(500).json({ error: 'Base de datos no disponible. Intentá en unos minutos.' });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: 'Este email ya está registrado' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword,
-      phone: phone || '',
-      idNumber: idNumber || ''
-    });
-
-    await user.save();
-
-    // Enviar email de bienvenida (no bloqueante)
-    try {
-      sendWelcomeEmail(user.email, user.name);
-    } catch (emailError) {
-      console.log('Error enviando email:', emailError.message);
-    }
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.status(201).json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        verified: user.verified,
-        logisticsProvider: user.logisticsProvider
-      }
-    });
-  } catch (error) {
-    console.error('Error en registro:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// Login
-app.post('/api/auth/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email y contraseña son obligatorios' });
-    }
-
-    if (!User) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'Credenciales inválidas' });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: 'Credenciales inválidas' });
-    }
-
-    const token = jwt.sign(
-      { id: user._id, email: user.email },
-      JWT_SECRET,
-      { expiresIn: '7d' }
-    );
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        verified: user.verified,
-        logisticsProvider: user.logisticsProvider,
-        providerService: user.providerService,
-        providerVerified: user.providerVerified,
-        avatar: user.avatar
-      }
-    });
-  } catch (error) {
-    console.error('Error en login:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// Verificar token
-app.get('/api/auth/verify', authMiddleware, (req, res) => {
-  res.json({
-    id: req.user._id,
-    name: req.user.name,
-    email: req.user.email,
-    verified: req.user.verified,
-    logisticsProvider: req.user.logisticsProvider,
-    providerService: req.user.providerService,
-    providerVerified: req.user.providerVerified,
-    avatar: req.user.avatar
-  });
-});
-
-// Perfil de usuario
-app.get('/api/user/profile', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password');
-    if (!user) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-    res.json(user);
-  } catch (error) {
-    console.error('Error obteniendo perfil:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// Actualizar perfil
-app.put('/api/user/profile', authMiddleware, async (req, res) => {
-  try {
-    const { name, phone, idNumber } = req.body;
-    const user = await User.findById(req.user._id);
-    
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (idNumber) user.idNumber = idNumber;
-
-    await user.save();
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        idNumber: user.idNumber,
-        avatar: user.avatar
-      }
-    });
-  } catch (error) {
-    console.error('Error actualizando perfil:', error);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-});
-
-// ============================================
-// PRESTADORES LOGÍSTICOS
-// ============================================
-
-app.post('/api/logistics/register', authMiddleware, async (req, res) => {
-  try {
-    const { serviceType, vehicleType, coverageArea } = req.body;
-
-    if (!serviceType) {
-      return res.status(400).json({ error: 'Tipo de servicio es obligatorio' });
-    }
-
-    if (!LogisticsProvider) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const existingProvider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (existingProvider) {
-      return res.status(400).json({ error: 'Ya estás registrado como prestador' });
-    }
-
-    const provider = new LogisticsProvider({
-      user: req.user._id,
-      serviceType,
-      vehicleType: vehicleType || '',
-      coverageArea: coverageArea || '',
-      monthlyFee: 10,
-      commissionRate: 0.015
-    });
-
-    await provider.save();
-
-    req.user.logisticsProvider = true;
-    req.user.providerService = serviceType;
-    await req.user.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Registro exitoso. Completá la verificación facial y el pago.',
-      provider: {
-        id: provider._id,
-        serviceType: provider.serviceType,
-        verified: provider.verified,
-        paid: provider.paid
-      }
-    });
-  } catch (error) {
-    console.error('Error registrando prestador:', error);
-    res.status(500).json({ error: 'Error al registrar prestador' });
-  }
-});
-
-app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
-  try {
-    if (!LogisticsProvider) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const provider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (!provider) {
-      return res.status(404).json({ error: 'No estás registrado como prestador' });
-    }
-
-    provider.faceVerified = true;
-    await provider.save();
-
-    res.json({
-      success: true,
-      message: 'Verificación facial completada',
-      nextStep: 'payment'
-    });
-  } catch (error) {
-    console.error('Error en verificación facial:', error);
-    res.status(500).json({ error: 'Error en verificación' });
-  }
-});
-
-app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
-  try {
-    if (!LogisticsProvider) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const provider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (!provider) {
-      return res.status(404).json({ error: 'No estás registrado como prestador' });
-    }
-
-    if (!provider.faceVerified) {
-      return res.status(400).json({ error: 'Primero completá la verificación facial' });
-    }
-
-    provider.paid = true;
-    provider.verified = true;
-    provider.active = true;
-    provider.paymentDate = new Date();
-    await provider.save();
-
-    req.user.providerVerified = true;
-    req.user.providerPaid = true;
-    await req.user.save();
-
-    res.json({
-      success: true,
-      message: 'Pago procesado. ¡Ya podés ofrecer servicios!',
-      provider: {
-        verified: provider.verified,
-        active: provider.active,
-        serviceType: provider.serviceType
-      }
-    });
-  } catch (error) {
-    console.error('Error procesando pago:', error);
-    res.status(500).json({ error: 'Error al procesar pago' });
-  }
-});
-
-app.get('/api/logistics/status', authMiddleware, async (req, res) => {
-  try {
-    if (!LogisticsProvider) {
-      return res.json({ registered: false, error: 'DB no disponible' });
-    }
-
-    const provider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (!provider) {
-      return res.json({ registered: false });
-    }
-
-    res.json({
-      registered: true,
-      provider: {
-        id: provider._id,
-        serviceType: provider.serviceType,
-        verified: provider.verified,
-        faceVerified: provider.faceVerified,
-        paid: provider.paid,
-        active: provider.active,
-        rating: provider.rating,
-        completedServices: provider.completedServices
-      }
-    });
-  } catch (error) {
-    console.error('Error obteniendo estado:', error);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-// ============================================
-// OFERTAS DE SERVICIO
-// ============================================
-
-app.post('/api/offers', authMiddleware, async (req, res) => {
-  try {
-    const { serviceType, title, description, fromLocation, toLocation, basePrice } = req.body;
-
-    if (!serviceType || !title || !description || !fromLocation || !toLocation || !basePrice) {
-      return res.status(400).json({ error: 'Todos los campos son obligatorios' });
-    }
-
-    if (!Offer) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const offer = new Offer({
-      client: req.user._id,
-      serviceType,
-      title,
-      description,
-      fromLocation,
-      toLocation,
-      basePrice: parseFloat(basePrice)
-    });
-
-    await offer.save();
-
-    res.status(201).json({
-      success: true,
-      offer: {
-        id: offer._id,
-        title: offer.title,
-        serviceType: offer.serviceType,
-        basePrice: offer.basePrice
-      }
-    });
-  } catch (error) {
-    console.error('Error creando oferta:', error);
-    res.status(500).json({ error: 'Error al crear oferta' });
-  }
-});
-
-app.get('/api/offers/available', authMiddleware, async (req, res) => {
-  try {
-    if (!LogisticsProvider || !Offer) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const provider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (!provider || !provider.active) {
-      return res.status(403).json({ error: 'No tenés acceso a ofertas' });
-    }
-
-    const offers = await Offer.find({
-      serviceType: provider.serviceType,
-      status: 'open',
-      expiresAt: { $gt: new Date() }
-    })
-    .populate('client', 'name avatar rating')
-    .sort({ createdAt: -1 })
-    .limit(50);
-
-    res.json({
-      success: true,
-      count: offers.length,
-      offers: offers.map(offer => ({
-        id: offer._id,
-        title: offer.title,
-        description: offer.description,
-        fromLocation: offer.fromLocation,
-        toLocation: offer.toLocation,
-        basePrice: offer.basePrice,
-        client: {
-          name: offer.client.name,
-          avatar: offer.client.avatar,
-          rating: offer.client.rating
-        },
-        createdAt: offer.createdAt,
-        expiresAt: offer.expiresAt
-      }))
-    });
-  } catch (error) {
-    console.error('Error obteniendo ofertas:', error);
-    res.status(500).json({ error: 'Error al obtener ofertas' });
-  }
-});
-
-app.get('/api/offers/my-offers', authMiddleware, async (req, res) => {
-  try {
-    if (!Offer) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const offers = await Offer.find({ client: req.user._id })
-      .sort({ createdAt: -1 })
-      .populate('acceptedProvider');
-
-    res.json({ success: true, offers });
-  } catch (error) {
-    console.error('Error obteniendo mis ofertas:', error);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-// ============================================
-// PUJAS (BIDS)
-// ============================================
-
-app.post('/api/bids', authMiddleware, async (req, res) => {
-  try {
-    const { offerId, amount, message, estimatedTime } = req.body;
-
-    if (!offerId || !amount) {
-      return res.status(400).json({ error: 'Oferta y monto son obligatorios' });
-    }
-
-    if (!LogisticsProvider || !Offer || !Bid) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const provider = await LogisticsProvider.findOne({ user: req.user._id });
-    if (!provider || !provider.active) {
-      return res.status(403).json({ error: 'No podés pujar' });
-    }
-
-    const offer = await Offer.findById(offerId);
-    if (!offer || offer.status !== 'open') {
-      return res.status(404).json({ error: 'Oferta no disponible' });
-    }
-
-    const existingBid = await Bid.findOne({ offer: offerId, provider: provider._id });
-    if (existingBid) {
-      return res.status(400).json({ error: 'Ya enviaste una puja para esta oferta' });
-    }
-
-    const bid = new Bid({
-      offer: offerId,
-      provider: provider._id,
-      amount: parseFloat(amount),
-      message: message || '',
-      estimatedTime: estimatedTime || ''
-    });
-
-    await bid.save();
-
-    res.status(201).json({
-      success: true,
-      message: 'Puja enviada exitosamente',
-      bid: {
-        id: bid._id,
-        amount: bid.amount,
-        message: bid.message
-      }
-    });
-  } catch (error) {
-    console.error('Error enviando puja:', error);
-    res.status(500).json({ error: 'Error al enviar puja' });
-  }
-});
-
-app.get('/api/bids/:offerId', authMiddleware, async (req, res) => {
-  try {
-    if (!Offer || !Bid) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const offer = await Offer.findById(req.params.offerId);
-    if (!offer) {
-      return res.status(404).json({ error: 'Oferta no encontrada' });
-    }
-
-    if (offer.client.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'No tenés acceso a estas pujas' });
-    }
-
-    const bids = await Bid.find({ offer: req.params.offerId })
-      .populate('provider', 'serviceType rating completedServices')
-      .sort({ amount: 1 });
-
-    res.json({
-      success: true,
-      bids: bids.map(bid => ({
-        id: bid._id,
-        amount: bid.amount,
-        message: bid.message,
-        estimatedTime: bid.estimatedTime,
-        provider: {
-          serviceType: bid.provider.serviceType,
-          rating: bid.provider.rating,
-          completedServices: bid.provider.completedServices
-        },
-        createdAt: bid.createdAt
-      }))
-    });
-  } catch (error) {
-    console.error('Error obteniendo pujas:', error);
-    res.status(500).json({ error: 'Error interno' });
-  }
-});
-
-app.post('/api/bids/:bidId/accept', authMiddleware, async (req, res) => {
-  try {
-    if (!Bid || !Offer || !Conversation) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const bid = await Bid.findById(req.params.bidId).populate('offer');
-    if (!bid) {
-      return res.status(404).json({ error: 'Puja no encontrada' });
-    }
-
-    const offer = bid.offer;
-    if (offer.client.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: 'No tenés permiso' });
-    }
-
-    bid.status = 'accepted';
-    await bid.save();
-
-    offer.status = 'in_progress';
-    offer.acceptedProvider = bid.provider;
-    offer.acceptedBid = bid._id;
-    await offer.save();
-
-    await Bid.updateMany(
-      { offer: offer._id, _id: { $ne: bid._id } },
-      { status: 'rejected' }
-    );
-
-    const conversation = new Conversation({
-      participants: [req.user._id, bid.provider.user],
-      relatedOffer: offer._id
-    });
-    await conversation.save();
-
-    res.json({
-      success: true,
-      message: 'Puja aceptada. Se creó el chat con el prestador.',
-      conversationId: conversation._id
-    });
-  } catch (error) {
-    console.error('Error aceptando puja:', error);
-    res.status(500).json({ error: 'Error al aceptar puja' });
-  }
-});
-
-// ============================================
-// CHAT
-// ============================================
-
-app.get('/api/chat/conversations', authMiddleware, async (req, res) => {
-  try {
-    if (!Conversation) {
-      return res.status(500).json({ error: 'Base de datos no disponible' });
-    }
-
-    const conversations = await Conversation.find({
-      participants: req.user._id
-    })
-    .populate('participants', 'name avatar')
-    .populate('lastMessage')
-    .sort({ lastMessageAt: -1 });
-
-    res.json({
-      success: true,
-      conversations: conversations.map(conv => ({
-        id: conv._id,
-        participants: conv.participants.filter(p => p._
+    <script>
+        function log(msg) {
+            const box = document.getElementById('debugBox');
+            const time = new Date().toLocaleTimeString();
+            box.innerHTML += `<div>[${time}] ${msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+            console.log(msg);
+        }
+        
+        function toggleDebug() {
+            document.getElementById('debugBox').classList.toggle('show');
+        }
+        
+        function showTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            document.getElementById('errorMsg').classList.remove('show');
+            document.getElementById('successMsg').classList.remove('show');
+            
+            if (tab === 'login') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('loginForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('registerForm').classList.add('active');
+            }
+        }
+        
+        function showError(msg) {
+            const el = document.getElementById('errorMsg');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('successMsg').classList.remove('show');
+            log('ERROR: ' + msg);
+        }
+        
+        function showSuccess(msg) {
+            const el = document.getElementById('successMsg');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('errorMsg').classList.remove('show');
+            log('SUCCESS: ' + msg);
+        }
+        
+        async function doLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            log('Login: ' + email);
+            
+            if (!email || !password) {
+                showError('Completá email y contraseña');
+                return;
+            }
+            
+            try {
+                log('Enviando a /api/auth/login...');
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data));
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showSuccess('¡Login exitoso! Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = '/marketplace.html';
+                    }, 1500);
+                } else {
+                    showError(data.error || 'Error al iniciar sesión');
+                }
+            } catch (error) {
+                log('Fetch error: ' + error.message);
+                showError('Error de conexión: ' + error.message);
+            }
+        }
+        
+        async function doRegister() {
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const phone = document.getElementById('regPhone').value.trim();
+            const dni = document.getElementById('regDni').value.trim();
+            const password = document.getElementById('regPassword').value;
+            
+            log('Registro: ' + email);
+            
+            if (!name || !email || !password || !phone || !dni) {
+                showError('Completá todos los campos');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('La contraseña debe tener al menos 6 caracteres');
+                return;
+            }
+            
+            try {
+                log('Enviando a /api/auth/register...');
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password, phone, idNumber: dni })
+                });
+                
+                log('Status: ' + response.status);
+                const data = await response.json();
+                log('Response: ' + JSON.stringify(data));
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showSuccess('¡Cuenta creada! Revisá tu email.');
+                    setTimeout(() => {
+                        window.location.href = '/marketplace.html';
+                    }, 2000);
+                } else {
+                    showError(data.error || 'Error al registrar');
+                }
+            } catch (error) {
+                log('Fetch error: ' + error.message);
+                showError('Error de conexión: ' + error.message);
+            }
+        }
+        
+        // Auto-redirect si ya hay sesión
+        window.addEventListener('load', async () => {
+            log('Page loaded');
+            const token = localStorage.getItem('token');
+            if (token) {
+                log('Token encontrado');
+                try {
+                    const response = await fetch('/api/auth/verify', {
+                        headers: { 'Authorization': 'Bearer ' + token }
+                    });
+                    log('Verify status: ' + response.status);
+                    if (response.ok) {
+                        log('Token válido, redirigiendo...');
+                        window.location.href = '/marketplace.html';
+                    } else {
+                        log('Token inválido');
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                    }
+                } catch (error) {
+                    log('Verify error: ' + error.message);
+                }
+            }
+        });
+    </script>
+</body>
+  </html>
