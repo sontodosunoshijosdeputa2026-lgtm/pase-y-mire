@@ -65,7 +65,7 @@ try {
   sendWelcomeEmail = sendgrid.sendWelcomeEmail;
   console.log('✅ SendGrid cargado');
 } catch (error) {
-  console.log('️ SendGrid no disponible');
+  console.log('⚠️ SendGrid no disponible');
   sendWelcomeEmail = async () => console.log('Email simulado');
 }
 
@@ -100,12 +100,8 @@ const authMiddleware = async (req, res, next) => {
 };
 
 // ============================================
-// RUTAS INICIALES Y PRUEBA
+// RUTA DE PRUEBA
 // ============================================
-app.get('/', (req, res) => {
-  res.send('API PyM (Pase y Mire) funcionando correctamente');
-});
-
 app.get('/api/test', (req, res) => {
   res.json({ 
     success: true, 
@@ -182,7 +178,8 @@ app.post('/api/auth/register', async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
-      app.post('/api/auth/login', async (req, res) => {
+
+app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -360,7 +357,8 @@ app.post('/api/logistics/verify-face', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Error en verificación' });
   }
 });
-    app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
+
+app.post('/api/logistics/payment', authMiddleware, async (req, res) => {
   try {
     if (!LogisticsProvider) {
       return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -534,7 +532,8 @@ app.get('/api/offers/my-offers', authMiddleware, async (req, res) => {
     res.status(500).json({ error: 'Error interno' });
   }
 });
-          // ============================================
+
+// ============================================
 // PUJAS (BIDS)
 // ============================================
 
@@ -703,10 +702,4 @@ app.get('/api/chat/conversations', authMiddleware, async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Error obteniendo conversaciones:', error);
-    res.status(500).json({ error: 'Error al obtener conversaciones' });
-  }
-});
-
-module.exports = app;
-  
+    console.error('Error obteni
