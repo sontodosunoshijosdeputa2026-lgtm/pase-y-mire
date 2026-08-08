@@ -1,25 +1,29 @@
 {
   "name": "pase-y-mire",
   "version": "1.0.0",
-  "description": "PyM - Pase y Mire | El Espacio más Libre",
+  "description": "Pase y Mire - TradeHub",
   "main": "api/index.js",
   "scripts": {
-    "dev": "node api/index.js",
-    "start": "node api/index.js"
+    "start": "node api/index.js",
+    "dev": "nodemon api/index.js",
+    "build": "npm install"
   },
   "dependencies": {
-    "@sendgrid/mail": "^8.1.0",
-    "bcryptjs": "^2.4.3",
-    "cloudinary": "^1.41.0",
+    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "mercadopago": "^1.5.17",
-    "mongoose": "^8.0.0",
-    "multer": "^1.4.5-lts.1"
+    "bcryptjs": "^2.4.3",
+    "@supabase/supabase-js": "^2.39.0",
+    "multer": "^1.4.5-lts.1",
+    "cloudinary": "^1.41.0",
+    "@sendgrid/mail": "^7.7.0",
+    "mercadopago": "^1.5.17"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.x"
   }
 }
