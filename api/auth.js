@@ -1,13 +1,16 @@
+require('dotenv').config();
+
 const express = require('express');
 const bcrypt = require('bcryptjs');
 
 const supabase = require('../utils/supabase');
-const {
-  authMiddleware,
-  createToken
-} = require('../utils/auth');
+const { createToken, authMiddleware } = require('../utils/auth');
 
 const router = express.Router();
+
+// ============================================================
+// REGISTRO
+// ============================================================
 
 router.post('/register', async (req, res) => {
   try {
@@ -35,35 +38,49 @@ router.post('/register', async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const { data: existing } = await supabase
+    // Verificar usuario existente
+    const { data: existingUser, error: searchError } = await supabase
       .from('users')
       .select('id')
       .eq('email', normalizedEmail)
       .maybeSingle();
 
-    if (existing) {
+    if (searchError) {
+      console.error('Error buscando usuario:', searchError);
+
+      return res.status(500).json({
+        success: false,
+        error: 'Error consultando usuarios'
+      });
+    }
+
+    if (existingUser) {
       return res.status(409).json({
         success: false,
         error: 'El email ya está registrado'
       });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    const { data: user, error } = await supabase
+    const { data: user, error: insertError } = await supabase
       .from('users')
       .insert({
         name: name.trim(),
         email: normalizedEmail,
-        password: passwordHash,
+        password: hashedPassword,
         phone: phone || '',
-        id_number: idNumber || ''
+        id_number: idNumber || '',
+        verified: false,
+        rating: 5,
+        posts: 0,
+        sales: 0
       })
-      .select('id,name,email,phone,id_number,avatar,verified,rating')
+      .select('id,name,email,phone,id_number,avatar,verified,rating,posts,sales')
       .single();
 
-    if (error) {
-      console.error('Registro:', error);
+    if (insertError) {
+      console.error('Error creando usuario:', insertError);
 
       return res.status(500).json({
         success: false,
@@ -78,19 +95,27 @@ router.post('/register', async (req, res) => {
       token,
       user
     });
+
   } catch (error) {
-    console.error('Registro:', error);
+    console.error('Error registro:', error);
 
     return res.status(500).json({
       success: false,
-      error: 'Error interno'
+      error: 'Error interno del servidor'
     });
   }
 });
 
+// ============================================================
+// LOGIN
+// ============================================================
+
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const {
+      email,
+      password
+    } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -105,48 +130,62 @@ router.post('/login', async (req, res) => {
       .from('users')
       .select('*')
       .eq('email', normalizedEmail)
-      .single();
+      .maybeSingle();
 
-    if (error || !user) {
+    if (error) {
+      console.error('Error buscando usuario:', error);
+
+      return res.status(500).json({
+        success: false,
+        error: 'Error consultando usuarios'
+      });
+    }
+
+    if (!user) {
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
     }
 
-    const valid = await bcrypt.compare(
+    const validPassword = await bcrypt.compare(
       password,
       user.password
     );
 
-    if (!valid) {
+    if (!validPassword) {
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
     }
 
-    delete user.password;
-
     const token = createToken(user);
+
+    delete user.password;
 
     return res.json({
       success: true,
       token,
       user
     });
+
   } catch (error) {
-    console.error('Login:', error);
+    console.error('Error login:', error);
 
     return res.status(500).json({
       success: false,
-      error: 'Error interno'
+      error: 'Error interno del servidor'
     });
   }
 });
 
-router.get('/verify', authMiddleware, (req, res) => {
-  res.json({
+// ============================================================
+// VERIFICAR SESIÓN
+// ============================================================
+
+router.get('/verify', authMiddleware, async (req, res) => {
+  return res.json({
     success: true,
     user: req.user
   });
