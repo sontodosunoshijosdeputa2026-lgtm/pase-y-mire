@@ -2,39 +2,27 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const connectDB = require('../db/connect');
+
+const supabase = require('../utils/supabase');
+
+const authRouter = require('./auth');
 
 const app = express();
 
-// ============================================
-// CONFIGURACIÓN
-// ============================================
-
-const PORT = process.env.PORT || 3000;
-
-if (!process.env.JWT_SECRET) {
-  console.error('❌ JWT_SECRET no está configurado');
-}
-
-if (!process.env.MONGODB_URI) {
-  console.error('❌ MONGODB_URI no está configurado');
-}
-
-// ============================================
-// BASE DE DATOS
-// ============================================
-
-connectDB();
-
-// ============================================
-// MIDDLEWARE
-// ============================================
-
 app.use(cors({
   origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false
+  methods: [
+    'GET',
+    'POST',
+    'PUT',
+    'PATCH',
+    'DELETE',
+    'OPTIONS'
+  ],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization'
+  ]
 }));
 
 app.use(express.json({
@@ -47,59 +35,84 @@ app.use(express.urlencoded({
 }));
 
 // ============================================
-// RUTAS
-// ============================================
-
-// Autenticación MongoDB
-const authRouter = require('./auth');
-app.use('/api/auth', authRouter);
-
-// Upload / Cloudinary
-try {
-  const uploadRouter = require('./upload');
-  app.use('/api/upload', uploadRouter);
-  console.log('✅ Ruta de upload cargada');
-} catch (error) {
-  console.log('⚠️ Upload no disponible:', error.message);
-}
-
-// ============================================
 // HEALTH CHECK
 // ============================================
 
 app.get('/api/test', async (req, res) => {
   try {
-    const mongoose = require('mongoose');
+    const { error } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
 
-    const dbState = {
-      0: 'desconectado',
-      1: 'conectado',
-      2: 'conectando',
-      3: 'desconectando'
-    };
+    if (error) {
+      return res.status(503).json({
+        success: false,
+        message: 'API funcionando, pero Supabase no responde',
+        database: {
+          type: 'Supabase',
+          status: 'desconectado'
+        },
+        error: {
+          message: error.message,
+          code: error.code || null,
+          details: error.details || null
+        }
+      });
+    }
 
-    res.json({
+    return res.json({
       success: true,
       message: 'API Pase y Mire funcionando',
       database: {
-        type: 'MongoDB',
-        status: dbState[mongoose.connection.readyState] || 'desconocido'
+        type: 'Supabase',
+        status: 'conectado'
       },
-      mercadopago: {
-        configured: !!process.env.MERCADOPAGO_ACCESS_TOKEN
+      services: {
+        mercadopago: Boolean(
+          process.env.MERCADOPAGO_ACCESS_TOKEN
+        ),
+        cloudinary: Boolean(
+          process.env.CLOUDINARY_CLOUD_NAME
+        ),
+        sendgrid: Boolean(
+          process.env.SENDGRID_API_KEY
+        )
       },
       timestamp: new Date().toISOString()
     });
-
   } catch (error) {
-    console.error('Error health check:', error);
+    console.error('Health check:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: 'Error verificando el sistema'
     });
   }
 });
+
+// ============================================
+// AUTH
+// ============================================
+
+app.use('/api/auth', authRouter);
+
+// ============================================
+// UPLOAD
+// ============================================
+
+try {
+  const uploadRouter = require('./upload');
+
+  app.use('/api/upload', uploadRouter);
+
+  console.log('✅ Upload disponible');
+} catch (error) {
+  console.log(
+    '⚠️ Upload no disponible:',
+    error.message
+  );
+}
 
 // ============================================
 // 404
@@ -108,12 +121,13 @@ app.get('/api/test', async (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Ruta no encontrada'
+    error: 'Ruta no encontrada',
+    path: req.originalUrl
   });
 });
 
 // ============================================
-// MANEJO DE ERRORES
+// ERRORES
 // ============================================
 
 app.use((err, req, res, next) => {
@@ -129,12 +143,16 @@ app.use((err, req, res, next) => {
 });
 
 // ============================================
-// SERVIDOR
+// LOCAL
 // ============================================
 
 if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+
   app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+    console.log(
+      `🚀 API Pase y Mire: puerto ${PORT}`
+    );
   });
 }
 
