@@ -5,9 +5,17 @@ const cors = require('cors');
 
 const supabase = require('../utils/supabase');
 
-const authRouter = require('./auth');
-
 const app = express();
+
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+
+const PORT = process.env.PORT || 3000;
+
+// ============================================================
+// MIDDLEWARE
+// ============================================================
 
 app.use(cors({
   origin: '*',
@@ -34,29 +42,66 @@ app.use(express.urlencoded({
   limit: '10mb'
 }));
 
-// ============================================
+// ============================================================
+// AUTENTICACIÓN
+// ============================================================
+
+const authRouter = require('./auth');
+
+app.use('/api/auth', authRouter);
+
+// ============================================================
+// UPLOAD / CLOUDINARY
+// ============================================================
+
+try {
+  const uploadRouter = require('./upload');
+
+  app.use('/api/upload', uploadRouter);
+
+  console.log('✅ Upload cargado');
+} catch (error) {
+  console.log('⚠️ Upload no disponible:', error.message);
+}
+
+// ============================================================
 // HEALTH CHECK
-// ============================================
+// ============================================================
 
 app.get('/api/test', async (req, res) => {
   try {
+    const hasSupabaseUrl = Boolean(process.env.SUPABASE_URL);
+    const hasSupabaseKey = Boolean(process.env.SUPABASE_KEY);
+
+    if (!hasSupabaseUrl || !hasSupabaseKey) {
+      return res.status(500).json({
+        success: false,
+        message: 'Faltan variables de entorno de Supabase',
+        supabase: 'Configuración incompleta',
+        details: {
+          hasUrl: hasSupabaseUrl,
+          hasKey: hasSupabaseKey
+        }
+      });
+    }
+
     const { error } = await supabase
       .from('users')
       .select('id')
       .limit(1);
 
     if (error) {
+      console.error('❌ Supabase:', error);
+
       return res.status(503).json({
         success: false,
-        message: 'API funcionando, pero Supabase no responde',
-        database: {
-          type: 'Supabase',
-          status: 'desconectado'
-        },
+        message: 'Error de conexión con Supabase',
+        supabase: 'Desconectado',
         error: {
           message: error.message,
-          code: error.code || null,
-          details: error.details || null
+          code: error.code || '',
+          details: error.details || '',
+          hint: error.hint || ''
         }
       });
     }
@@ -64,71 +109,49 @@ app.get('/api/test', async (req, res) => {
     return res.json({
       success: true,
       message: 'API Pase y Mire funcionando',
-      database: {
-        type: 'Supabase',
-        status: 'conectado'
-      },
-      services: {
-        mercadopago: Boolean(
-          process.env.MERCADOPAGO_ACCESS_TOKEN
-        ),
-        cloudinary: Boolean(
-          process.env.CLOUDINARY_CLOUD_NAME
-        ),
-        sendgrid: Boolean(
-          process.env.SENDGRID_API_KEY
-        )
-      },
+      supabase: 'Conectado',
+      database: 'Supabase',
       timestamp: new Date().toISOString()
     });
+
   } catch (error) {
-    console.error('Health check:', error);
+    console.error('❌ Health check:', error);
 
     return res.status(500).json({
       success: false,
-      error: 'Error verificando el sistema'
+      message: 'Error verificando Supabase',
+      supabase: 'Error',
+      error: error.message
     });
   }
 });
 
-// ============================================
-// AUTH
-// ============================================
+// ============================================================
+// RUTA PRINCIPAL
+// ============================================================
 
-app.use('/api/auth', authRouter);
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Pase y Mire API',
+    status: 'online'
+  });
+});
 
-// ============================================
-// UPLOAD
-// ============================================
-
-try {
-  const uploadRouter = require('./upload');
-
-  app.use('/api/upload', uploadRouter);
-
-  console.log('✅ Upload disponible');
-} catch (error) {
-  console.log(
-    '⚠️ Upload no disponible:',
-    error.message
-  );
-}
-
-// ============================================
+// ============================================================
 // 404
-// ============================================
+// ============================================================
 
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Ruta no encontrada',
-    path: req.originalUrl
+    error: 'Ruta no encontrada'
   });
 });
 
-// ============================================
-// ERRORES
-// ============================================
+// ============================================================
+// MANEJO DE ERRORES
+// ============================================================
 
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
@@ -142,17 +165,13 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ============================================
-// LOCAL
-// ============================================
+// ============================================================
+// SERVIDOR LOCAL
+// ============================================================
 
 if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 3000;
-
   app.listen(PORT, () => {
-    console.log(
-      `🚀 API Pase y Mire: puerto ${PORT}`
-    );
+    console.log(`🚀 Pase y Mire API en puerto ${PORT}`);
   });
 }
 
