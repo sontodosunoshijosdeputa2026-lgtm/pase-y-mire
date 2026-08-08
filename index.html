@@ -1,379 +1,125 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PyM - Pase y Mire | El Espacio más Libre</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-        .auth-box {
-            background: white;
-            border-radius: 1.5rem;
-            padding: 2rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            width: 100%;
-            max-width: 450px;
-        }
-        .brand-header { text-align: center; margin-bottom: 2rem; }
-        .logo-container {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 20px;
-            margin-bottom: 1rem;
-        }
-        .logo-text { color: white; font-size: 1.8rem; font-weight: 900; }
-        .brand-name {
-            font-size: 1.75rem;
-            font-weight: 800;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 0.25rem;
-        }
-        .brand-slogan { color: #6b7280; font-size: 0.95rem; font-style: italic; }
-        .auth-tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            background: #f3f4f6;
-            padding: 0.25rem;
-            border-radius: 0.75rem;
-        }
-        .auth-tab {
-            flex: 1;
-            padding: 0.75rem;
-            border: none;
-            background: transparent;
-            color: #6b7280;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 0.5rem;
-            font-size: 0.95rem;
-        }
-        .auth-tab.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-        .auth-form { display: none; }
-        .auth-form.active { display: block; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #374151;
-            font-size: 0.9rem;
-        }
-        .form-group input {
-            width: 100%;
-            padding: 0.875rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            font-size: 1rem;
-        }
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .btn-primary {
-            width: 100%;
-            padding: 0.875rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 0.75rem;
-            font-weight: 700;
-            cursor: pointer;
-            font-size: 1rem;
-        }
-        .btn-primary:disabled { opacity: 0.6; }
-        .message {
-            padding: 0.875rem;
-            margin-bottom: 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.85rem;
-            display: none;
-        }
-        .message.error {
-            background: #fee2e2;
-            border-left: 4px solid #ef4444;
-            color: #991b1b;
-        }
-        .message.success {
-            background: #d1fae5;
-            border-left: 4px solid #10b981;
-            color: #065f46;
-        }
-        .message.show { display: block; }
-        .debug-box {
-            margin-top: 1rem;
-            padding: 0.5rem;
-            background: #1f2937;
-            color: #10b981;
-            font-family: monospace;
-            font-size: 0.7rem;
-            border-radius: 0.5rem;
-            max-height: 150px;
-            overflow-y: auto;
-            display: none;
-        }
-        .debug-box.show { display: block; }
-        .debug-toggle {
-            margin-top: 1rem;
-            background: none;
-            border: 1px solid #d1d5db;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 0.75rem;
-            color: #6b7280;
-            cursor: pointer;
-            width: 100%;
-        }
-        .brand-footer {
-            text-align: center;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pase y Mire API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 600px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .status {
+      background: rgba(255,255,255,0.05);
+      padding: 2rem;
+      border-radius: 12px;
+      margin: 2rem 0;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .status h2 { margin-bottom: 1rem; }
+    #result {
+      font-family: monospace;
+      background: #0a0a0a;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-top: 1rem;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: 0.9rem;
+    }
+    .btn {
+      background: linear-gradient(135deg, #00d4ff, #7c3aed);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin: 5px;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .endpoints {
+      text-align: left;
+      margin-top: 2rem;
+      padding: 1.5rem;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+    }
+    .endpoints h3 { margin-bottom: 1rem; }
+    .endpoint {
+      background: #0a0a0a;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      margin: 0.5rem 0;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    .success { color: #00ff88; }
+    .error { color: #ff4444; }
+  </style>
 </head>
 <body>
-    <div class="auth-box">
-        <div class="brand-header">
-            <div class="logo-container">
-                <span class="logo-text">PyM</span>
-            </div>
-            <h1 class="brand-name">Pase y Mire</h1>
-            <p class="brand-slogan">✨ El Espacio más Libre</p>
-        </div>
-        
-        <div class="auth-tabs">
-            <button class="auth-tab active" onclick="showTab('login')">Iniciar Sesión</button>
-            <button class="auth-tab" onclick="showTab('register')">Registrarse</button>
-        </div>
-        
-        <div class="message error" id="errorMsg"></div>
-        <div class="message success" id="successMsg"></div>
-        
-        <!-- LOGIN -->
-        <form id="loginForm" class="auth-form active">
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="loginEmail" required placeholder="tu@email.com">
-            </div>
-            <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" id="loginPassword" required placeholder="••••••••">
-            </div>
-            <button type="button" class="btn-primary" onclick="doLogin()">Ingresar</button>
-        </form>
-        
-        <!-- REGISTER -->
-        <form id="registerForm" class="auth-form">
-            <div class="form-group">
-                <label>Nombre Completo</label>
-                <input type="text" id="regName" required placeholder="Juan Pérez">
-            </div>
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" id="regEmail" required placeholder="tu@email.com">
-            </div>
-            <div class="form-group">
-                <label>Teléfono</label>
-                <input type="tel" id="regPhone" required placeholder="+54 11 1234-5678">
-            </div>
-            <div class="form-group">
-                <label>DNI/CUIT</label>
-                <input type="text" id="regDni" required placeholder="12345678">
-            </div>
-            <div class="form-group">
-                <label>Contraseña (mín 6)</label>
-                <input type="password" id="regPassword" minlength="6" required placeholder="••••••••">
-            </div>
-            <button type="button" class="btn-primary" onclick="doRegister()">Crear Cuenta</button>
-        </form>
-        
-        <button class="debug-toggle" onclick="toggleDebug()">
-            <i class="fas fa-bug"></i> Mostrar/Ocultar Debug
-        </button>
-        <div class="debug-box" id="debugBox"></div>
-        
-        <div class="brand-footer">
-            <p><strong>PyM</strong> · Pase y Mire · El Espacio más Libre</p>
-        </div>
+  <div class="container">
+    <h1>🚀 Pase y Mire API</h1>
+    <p>Backend - TradeHub Platform</p>
+    
+    <div class="status">
+      <h2>Estado del Sistema</h2>
+      <button class="btn" onclick="testAPI()">Test API</button>
+      <div id="result">Presioná "Test API" para verificar</div>
     </div>
     
-    <script>
-        function log(msg) {
-            const box = document.getElementById('debugBox');
-            const time = new Date().toLocaleTimeString();
-            box.innerHTML += `<div>[${time}] ${msg}</div>`;
-            box.scrollTop = box.scrollHeight;
-            console.log(msg);
-        }
+    <div class="endpoints">
+      <h3>📡 Endpoints disponibles:</h3>
+      <div class="endpoint">GET /api/test</div>
+      <div class="endpoint">POST /api/auth/register</div>
+      <div class="endpoint">POST /api/auth/login</div>
+      <div class="endpoint">GET /api/auth/verify</div>
+    </div>
+  </div>
+
+  <script>
+    async function testAPI() {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = 'Cargando...';
+      
+      try {
+        const response = await fetch('/api/test');
+        const data = await response.json();
         
-        function toggleDebug() {
-            document.getElementById('debugBox').classList.toggle('show');
-        }
+        const formatted = JSON.stringify(data, null, 2);
         
-        function showTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
-            document.getElementById('errorMsg').classList.remove('show');
-            document.getElementById('successMsg').classList.remove('show');
-            
-            if (tab === 'login') {
-                document.querySelectorAll('.auth-tab')[0].classList.add('active');
-                document.getElementById('loginForm').classList.add('active');
-            } else {
-                document.querySelectorAll('.auth-tab')[1].classList.add('active');
-                document.getElementById('registerForm').classList.add('active');
-            }
+        if (data.success && data.supabase === 'Conectado') {
+          resultEl.innerHTML = `<span class="success">✅ API Conectada\n\n${formatted}</span>`;
+        } else {
+          resultEl.innerHTML = `<span class="error">⚠️ API funcionando\n\n${formatted}</span>`;
         }
-        
-        function showError(msg) {
-            const el = document.getElementById('errorMsg');
-            el.textContent = msg;
-            el.classList.add('show');
-            document.getElementById('successMsg').classList.remove('show');
-            log('ERROR: ' + msg);
-        }
-        
-        function showSuccess(msg) {
-            const el = document.getElementById('successMsg');
-            el.textContent = msg;
-            el.classList.add('show');
-            document.getElementById('errorMsg').classList.remove('show');
-            log('SUCCESS: ' + msg);
-        }
-        
-        async function doLogin() {
-            const email = document.getElementById('loginEmail').value.trim();
-            const password = document.getElementById('loginPassword').value;
-            
-            log('Login: ' + email);
-            
-            if (!email || !password) {
-                showError('Completá email y contraseña');
-                return;
-            }
-            
-            try {
-                log('Enviando a /api/auth/login...');
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                
-                log('Status: ' + response.status);
-                const data = await response.json();
-                log('Response: ' + JSON.stringify(data));
-                
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    showSuccess('¡Login exitoso! Redirigiendo...');
-                    setTimeout(() => {
-                        window.location.href = '/marketplace.html';
-                    }, 1500);
-                } else {
-                    showError(data.error || 'Error al iniciar sesión');
-                }
-            } catch (error) {
-                log('Fetch error: ' + error.message);
-                showError('Error de conexión: ' + error.message);
-            }
-        }
-        
-        async function doRegister() {
-            const name = document.getElementById('regName').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const phone = document.getElementById('regPhone').value.trim();
-            const dni = document.getElementById('regDni').value.trim();
-            const password = document.getElementById('regPassword').value;
-            
-            log('Registro: ' + email);
-            
-            if (!name || !email || !password || !phone || !dni) {
-                showError('Completá todos los campos');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showError('La contraseña debe tener al menos 6 caracteres');
-                return;
-            }
-            
-            try {
-                log('Enviando a /api/auth/register...');
-                const response = await fetch('/api/auth/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, password, phone, idNumber: dni })
-                });
-                
-                log('Status: ' + response.status);
-                const data = await response.json();
-                log('Response: ' + JSON.stringify(data));
-                
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    showSuccess('¡Cuenta creada! Revisá tu email.');
-                    setTimeout(() => {
-                        window.location.href = '/marketplace.html';
-                    }, 2000);
-                } else {
-                    showError(data.error || 'Error al registrar');
-                }
-            } catch (error) {
-                log('Fetch error: ' + error.message);
-                showError('Error de conexión: ' + error.message);
-            }
-        }
-        
-        // Auto-redirect si ya hay sesión
-        window.addEventListener('load', async () => {
-            log('Page loaded');
-            const token = localStorage.getItem('token');
-            if (token) {
-                log('Token encontrado');
-                try {
-                    const response = await fetch('/api/auth/verify', {
-                        headers: { 'Authorization': 'Bearer ' + token }
-                    });
-                    log('Verify status: ' + response.status);
-                    if (response.ok) {
-                        log('Token válido, redirigiendo...');
-                        window.location.href = '/marketplace.html';
-                    } else {
-                        log('Token inválido');
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                    }
-                } catch (error) {
-                    log('Verify error: ' + error.message);
-                }
-            }
-        });
-    </script>
+      } catch (error) {
+        resultEl.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+      }
+    }
+    
+    // Auto-test al cargar
+    window.addEventListener('load', testAPI);
+  </script>
 </body>
-  </html>
+</html>
