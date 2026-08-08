@@ -1,37 +1,13 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+
+const supabase = require('../utils/supabase');
+const {
+  authMiddleware,
+  createToken
+} = require('../utils/auth');
 
 const router = express.Router();
-
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  console.error('❌ JWT_SECRET no está configurado');
-}
-
-// Generar token
-function generateToken(user) {
-  if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET no configurado');
-  }
-
-  return jwt.sign(
-    {
-      id: user._id.toString(),
-      email: user.email
-    },
-    JWT_SECRET,
-    {
-      expiresIn: '7d'
-    }
-  );
-}
-
-// ============================================
-// REGISTRO
-// ============================================
 
 router.post('/register', async (req, res) => {
   try {
@@ -59,69 +35,62 @@ router.post('/register', async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const existingUser = await User.findOne({
-      email: normalizedEmail
-    });
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-    if (existingUser) {
+    if (existing) {
       return res.status(409).json({
         success: false,
         error: 'El email ya está registrado'
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const passwordHash = await bcrypt.hash(password, 12);
 
-    const user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
-      password: hashedPassword,
-      phone: phone || '',
-      idNumber: idNumber || ''
-    });
+    const { data: user, error } = await supabase
+      .from('users')
+      .insert({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: passwordHash,
+        phone: phone || '',
+        id_number: idNumber || ''
+      })
+      .select('id,name,email,phone,id_number,avatar,verified,rating')
+      .single();
 
-    const token = generateToken(user);
+    if (error) {
+      console.error('Registro:', error);
 
-    res.status(201).json({
+      return res.status(500).json({
+        success: false,
+        error: 'No se pudo crear el usuario'
+      });
+    }
+
+    const token = createToken(user);
+
+    return res.status(201).json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        verified: user.verified
-      }
+      user
     });
-
   } catch (error) {
-    console.error('Error registro:', error);
+    console.error('Registro:', error);
 
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        error: 'El email ya está registrado'
-      });
-    }
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: 'Error interno del servidor'
+      error: 'Error interno'
     });
   }
 });
 
-// ============================================
-// LOGIN
-// ============================================
-
 router.post('/login', async (req, res) => {
   try {
-    const {
-      email,
-      password
-    } = req.body;
+    const { email, password } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({
@@ -132,114 +101,55 @@ router.post('/login', async (req, res) => {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    const user = await User.findOne({
-      email: normalizedEmail
-    }).select('+password');
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', normalizedEmail)
+      .single();
 
-    if (!user) {
+    if (error || !user) {
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
     }
 
-    const passwordValid = await bcrypt.compare(
+    const valid = await bcrypt.compare(
       password,
       user.password
     );
 
-    if (!passwordValid) {
+    if (!valid) {
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
       });
     }
 
-    const token = generateToken(user);
+    delete user.password;
 
-    res.json({
+    const token = createToken(user);
+
+    return res.json({
       success: true,
       token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        verified: user.verified,
-        logisticsProvider: user.logisticsProvider,
-        providerService: user.providerService,
-        rating: user.rating
-      }
+      user
     });
-
   } catch (error) {
-    console.error('Error login:', error);
+    console.error('Login:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      error: 'Error interno del servidor'
+      error: 'Error interno'
     });
   }
 });
 
-// ============================================
-// VERIFICAR TOKEN / PERFIL
-// ============================================
-
-router.get('/me', async (req, res) => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        success: false,
-        error: 'No autorizado'
-      });
-    }
-
-    const token = authHeader.substring(7);
-
-    if (!JWT_SECRET) {
-      return res.status(500).json({
-        success: false,
-        error: 'JWT_SECRET no configurado'
-      });
-    }
-
-    const decoded = jwt.verify(token, JWT_SECRET);
-
-    const user = await User.findById(decoded.id);
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        error: 'Usuario no encontrado'
-      });
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        avatar: user.avatar,
-        verified: user.verified,
-        logisticsProvider: user.logisticsProvider,
-        providerService: user.providerService,
-        rating: user.rating,
-        sales: user.sales
-      }
-    });
-
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      error: 'Token inválido o expirado'
-    });
-  }
+router.get('/verify', authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    user: req.user
+  });
 });
 
 module.exports = router;
