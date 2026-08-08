@@ -1,7 +1,7 @@
 {
   "name": "pase-y-mire",
   "version": "1.0.0",
-  "description": "Pase y Mire - TradeHub API",
+  "description": "Pase y Mire - Marketplace, logística y billetera virtual",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js",
@@ -9,16 +9,17 @@
     "build": "npm install"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "@sendgrid/mail": "^7.7.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "bcryptjs": "^2.4.3",
-    "@supabase/supabase-js": "^2.39.0",
-    "multer": "^1.4.5-lts.1",
-    "cloudinary": "^1.41.0",
-    "@sendgrid/mail": "^7.7.0",
-    "mercadopago": "^1.5.17"
+    "mercadopago": "^1.5.17",
+    "mongoose": "^8.0.0",
+    "multer": "^1.4.5-lts.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
