@@ -1,7 +1,7 @@
 {
   "name": "pase-y-mire",
   "version": "1.0.0",
-  "description": "Pase y Mire - TradeHub",
+  "description": "Pase y Mire - TradeHub API",
   "main": "api/index.js",
   "scripts": {
     "start": "node api/index.js",
