@@ -6,24 +6,35 @@ const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 
-app.use(cors());
+// Middleware
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json({ limit: '10mb' }));
 
+// Constantes
 const JWT_SECRET = process.env.JWT_SECRET || 'tradehub-secret-key-2024';
 
 // Conexión a Supabase
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error('❌ Faltan variables de entorno de Supabase');
+}
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Router de upload (Cloudinary)
 let uploadRouter;
 try {
   uploadRouter = require('./upload');
   app.use('/api/upload', uploadRouter);
+  console.log('✅ Cloudinary configurado');
 } catch (error) {
-  console.log('Cloudinary no disponible');
+  console.log('️ Cloudinary no disponible');
 }
 
 // Email de bienvenida (SendGrid)
@@ -31,8 +42,10 @@ let sendWelcomeEmail;
 try {
   const sendgrid = require('../utils/sendgrid');
   sendWelcomeEmail = sendgrid.sendWelcomeEmail;
+  console.log('✅ SendGrid configurado');
 } catch (error) {
   sendWelcomeEmail = async () => {};
+  console.log('⚠️ SendGrid no disponible');
 }
 
 // Middleware de autenticación
@@ -59,13 +72,14 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Test de API - DIAGNÓSTICO DETALLADO
+// ============================================
+// ENDPOINTS
+// ============================================
+
+// Test de API - Diagnóstico completo
 app.get('/api/test', async (req, res) => {
   try {
     // Verificar variables de entorno
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_KEY;
-    
     if (!supabaseUrl || !supabaseKey) {
       return res.json({
         success: false,
@@ -102,7 +116,7 @@ app.get('/api/test', async (req, res) => {
       success: true,
       message: 'API PyM funcionando',
       supabase: 'Conectado',
-      data: data
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
     res.json({
@@ -114,7 +128,7 @@ app.get('/api/test', async (req, res) => {
   }
 });
 
-// Registro
+// Registro de usuario
 app.post('/api/auth/register', async (req, res) => {
   try {
     const { name, email, password, phone, idNumber } = req.body;
@@ -154,7 +168,10 @@ app.post('/api/auth/register', async (req, res) => {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Error insertando usuario:', error);
+      throw error;
+    }
     
     // Enviar email de bienvenida (opcional)
     try { 
@@ -241,5 +258,19 @@ app.get('/api/auth/verify', authMiddleware, (req, res) => {
     email: req.user.email
   });
 });
+
+// Manejo de errores
+app.use((err, req, res, next) => {
+  console.error('Error:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
+// Puerto para desarrollo local
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(` Servidor corriendo en puerto ${PORT}`);
+  });
+}
 
 module.exports = app;
