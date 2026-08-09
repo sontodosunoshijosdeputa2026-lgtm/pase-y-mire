@@ -3,120 +3,364 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire API</title>
+
+  <title>Pase y Mire | Iniciar sesión</title>
+
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
-      color: #fff;
       min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
-      justify-content: center;
       align-items: center;
-      padding: 2rem;
+      justify-content: center;
+      padding: 20px;
     }
+
     .container {
-      max-width: 600px;
+      width: 100%;
+      max-width: 430px;
+    }
+
+    .brand {
       text-align: center;
+      color: white;
+      margin-bottom: 24px;
     }
-    h1 {
-      font-size: 2.5rem;
-      margin-bottom: 1rem;
-      background: linear-gradient(135deg, #00d4ff, #7c3aed);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 12px;
+      border-radius: 18px;
+      background: white;
+      color: #667eea;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 900;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
     }
-    .status {
-      background: rgba(255,255,255,0.05);
-      padding: 2rem;
+
+    .brand h1 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+    }
+
+    .brand p {
+      opacity: .9;
+      font-size: .9rem;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 28px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.2);
+    }
+
+    .tabs {
+      display: flex;
+      background: #f3f4f6;
       border-radius: 12px;
-      margin: 2rem 0;
-      border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px;
+      margin-bottom: 24px;
     }
-    #result {
-      font-family: monospace;
-      background: #0a0a0a;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-top: 1rem;
-      text-align: left;
-      white-space: pre-wrap;
-      font-size: 0.9rem;
-    }
-    .btn {
-      background: linear-gradient(135deg, #00d4ff, #7c3aed);
-      color: #fff;
+
+    .tab {
+      flex: 1;
       border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 1rem;
+      background: transparent;
+      padding: 11px;
+      border-radius: 9px;
+      font-weight: 700;
+      color: #6b7280;
       cursor: pointer;
-      margin: 5px;
-      transition: transform 0.2s;
     }
-    .btn:hover { transform: translateY(-2px); }
-    .endpoints {
-      text-align: left;
-      margin-top: 2rem;
-      padding: 1.5rem;
-      background: rgba(255,255,255,0.05);
-      border-radius: 8px;
+
+    .tab.active {
+      background: white;
+      color: #667eea;
+      box-shadow: 0 2px 8px rgba(0,0,0,.08);
     }
-    .endpoint {
-      background: #0a0a0a;
-      padding: 0.5rem 1rem;
-      border-radius: 4px;
-      margin: 0.5rem 0;
-      font-family: monospace;
-      font-size: 0.9rem;
+
+    .form {
+      display: none;
     }
-    .success { color: #00ff88; }
-    .error { color: #ff4444; }
+
+    .form.active {
+      display: block;
+    }
+
+    .form h2 {
+      color: #1f2937;
+      margin-bottom: 6px;
+      font-size: 1.35rem;
+    }
+
+    .form-description {
+      color: #6b7280;
+      font-size: .85rem;
+      margin-bottom: 20px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+    }
+
+    .field label {
+      display: block;
+      color: #374151;
+      font-size: .85rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      outline: none;
+      font-size: .95rem;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .field input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+    }
+
+    .submit-btn {
+      width: 100%;
+      border: none;
+      border-radius: 11px;
+      padding: 13px;
+      margin-top: 5px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .2s, box-shadow .2s;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(102,126,234,.3);
+    }
+
+    .footer {
+      text-align: center;
+      color: white;
+      font-size: .75rem;
+      margin-top: 18px;
+      opacity: .85;
+    }
   </style>
 </head>
+
 <body>
+
   <div class="container">
-    <h1> Pase y Mire API</h1>
-    <p>Backend - TradeHub Platform</p>
-    
-    <div class="status">
-      <h2>Estado del Sistema</h2>
-      <button class="btn" onclick="testAPI()">Test API</button>
-      <div id="result">Presioná "Test API" para verificar</div>
+
+    <div class="brand">
+      <div class="logo">PyM</div>
+      <h1>Pase y Mire</h1>
+      <p>✨ El Espacio más Libre</p>
     </div>
-    
-    <div class="endpoints">
-      <h3>📡 Endpoints disponibles:</h3>
-      <div class="endpoint">GET /api/test</div>
-      <div class="endpoint">POST /api/auth/register</div>
-      <div class="endpoint">POST /api/auth/login</div>
-      <div class="endpoint">GET /api/auth/verify</div>
+
+    <div class="card">
+
+      <div class="tabs">
+        <button
+          type="button"
+          class="tab active"
+          onclick="showForm('login')">
+          Iniciar sesión
+        </button>
+
+        <button
+          type="button"
+          class="tab"
+          onclick="showForm('register')">
+          Registrarse
+        </button>
+      </div>
+
+      <!-- LOGIN -->
+
+      <form
+        id="loginForm"
+        class="form active"
+        onsubmit="handleLogin(event)">
+
+        <h2>Bienvenido</h2>
+
+        <p class="form-description">
+          Iniciá sesión para entrar a Pase y Mire.
+        </p>
+
+        <div class="field">
+          <label for="loginEmail">Email</label>
+
+          <input
+            id="loginEmail"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="loginPassword">Contraseña</label>
+
+          <input
+            id="loginPassword"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required>
+        </div>
+
+        <button type="submit" class="submit-btn">
+          Iniciar sesión
+        </button>
+
+      </form>
+
+
+      <!-- REGISTRO -->
+
+      <form
+        id="registerForm"
+        class="form"
+        onsubmit="handleRegister(event)">
+
+        <h2>Crear cuenta</h2>
+
+        <p class="form-description">
+          Registrate para comenzar a usar Pase y Mire.
+        </p>
+
+        <div class="field">
+          <label for="registerName">Nombre</label>
+
+          <input
+            id="registerName"
+            name="name"
+            type="text"
+            autocomplete="name"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="registerEmail">Email</label>
+
+          <input
+            id="registerEmail"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="registerPhone">Teléfono</label>
+
+          <input
+            id="registerPhone"
+            name="phone"
+            type="tel"
+            autocomplete="tel"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="registerIdNumber">Documento</label>
+
+          <input
+            id="registerIdNumber"
+            name="idNumber"
+            type="text"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="registerPassword">Contraseña</label>
+
+          <input
+            id="registerPassword"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required>
+        </div>
+
+        <div class="field">
+          <label for="registerConfirmPassword">
+            Confirmar contraseña
+          </label>
+
+          <input
+            id="registerConfirmPassword"
+            name="confirmPassword"
+            type="password"
+            autocomplete="new-password"
+            minlength="6"
+            required>
+        </div>
+
+        <button type="submit" class="submit-btn">
+          Crear cuenta
+        </button>
+
+      </form>
+
     </div>
+
+    <div class="footer">
+      Pase y Mire © 2026
+    </div>
+
   </div>
 
+  <script src="/public/js/auth.js"></script>
+
   <script>
-    async function testAPI() {
-      const resultEl = document.getElementById('result');
-      resultEl.textContent = 'Cargando...';
-      
-      try {
-        const response = await fetch('/api/test');
-        const data = await response.json();
-        
-        const formatted = JSON.stringify(data, null, 2);
-        
-        if (data.success && data.supabase === 'Conectado') {
-          resultEl.innerHTML = `<span class="success">✅ API Conectada\n\n${formatted}</span>`;
-        } else {
-          resultEl.innerHTML = `<span class="error">⚠️ API funcionando\n\n${formatted}</span>`;
-        }
-      } catch (error) {
-        resultEl.innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+    function showForm(form) {
+
+      const loginForm = document.getElementById('loginForm');
+      const registerForm = document.getElementById('registerForm');
+      const tabs = document.querySelectorAll('.tab');
+
+      if (form === 'login') {
+
+        loginForm.classList.add('active');
+        registerForm.classList.remove('active');
+
+        tabs[0].classList.add('active');
+        tabs[1].classList.remove('active');
+
+      } else {
+
+        loginForm.classList.remove('active');
+        registerForm.classList.add('active');
+
+        tabs[0].classList.remove('active');
+        tabs[1].classList.add('active');
+
       }
     }
-    
-    window.addEventListener('load', testAPI);
   </script>
+
 </body>
-</html>
+        </html>
