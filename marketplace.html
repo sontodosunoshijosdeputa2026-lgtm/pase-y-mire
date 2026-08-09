@@ -2,35 +2,721 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire - Marketplace</title>
-  <link rel="stylesheet" href="/public/css/styles.css">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+
+  <title>Pase y Mire — Marketplace</title>
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      color: #39343f;
+      background: #fbf9fc;
+    }
+
+    .market {
+      max-width: 1100px;
+      margin: auto;
+      padding: 20px 16px 30px;
+    }
+
+    .hero {
+      padding: 24px;
+      border-radius: 25px;
+      background:
+        linear-gradient(
+          135deg,
+          #e2d6f4,
+          #f5dfe9,
+          #dceef5
+        );
+      margin-bottom: 20px;
+    }
+
+    .hero h1 {
+      font-size: 27px;
+      margin-bottom: 7px;
+    }
+
+    .hero p {
+      color: #756d7d;
+      font-size: 14px;
+    }
+
+    .search {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px;
+      background: rgba(255,255,255,.9);
+      border-radius: 16px;
+    }
+
+    .search i {
+      color: #9a7bc7;
+    }
+
+    .search input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-size: 15px;
+    }
+
+    .categories {
+      display: flex;
+      gap: 9px;
+      overflow-x: auto;
+      padding: 4px 0 18px;
+    }
+
+    .category {
+      flex: 0 0 auto;
+      border: 0;
+      border-radius: 30px;
+      padding: 10px 16px;
+      background: #f0ebf5;
+      color: #6d6576;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .category.active {
+      color: white;
+      background: #9a7bc7;
+    }
+
+    .section-title {
+      margin: 10px 0 14px;
+      font-size: 20px;
+    }
+
+    .products {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fill, minmax(230px, 1fr));
+      gap: 16px;
+    }
+
+    .product {
+      overflow: hidden;
+      background: white;
+      border-radius: 20px;
+      border: 1px solid #eee8f2;
+      box-shadow: 0 8px 25px rgba(70,50,90,.06);
+      cursor: pointer;
+      transition: .2s;
+    }
+
+    .product:hover {
+      transform: translateY(-3px);
+    }
+
+    .product-image {
+      width: 100%;
+      height: 190px;
+      object-fit: cover;
+      background: #eee8f2;
+    }
+
+    .product-body {
+      padding: 15px;
+    }
+
+    .product-category {
+      color: #9a7bc7;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .product-title {
+      margin-top: 5px;
+      font-size: 16px;
+    }
+
+    .product-description {
+      margin-top: 7px;
+      color: #817987;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .product-price {
+      margin-top: 12px;
+      font-size: 21px;
+      font-weight: 900;
+      color: #7658ad;
+    }
+
+    .seller {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #f0ecf2;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .seller img {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #eee8f2;
+    }
+
+    .empty,
+    .loading {
+      padding: 50px 20px;
+      text-align: center;
+      color: #817987;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      background: rgba(35,25,45,.35);
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 700px;
+      max-height: 92vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 28px 28px 0 0;
+      padding: 20px;
+    }
+
+    .close {
+      float: right;
+      border: 0;
+      background: #f0ebf5;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .detail-image {
+      width: 100%;
+      max-height: 350px;
+      object-fit: cover;
+      border-radius: 20px;
+      margin-bottom: 18px;
+    }
+
+    .detail-price {
+      margin: 10px 0;
+      color: #7658ad;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .detail-seller {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 18px;
+      background: #faf7fc;
+    }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .action {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .primary {
+      color: white;
+      background: #9a7bc7;
+    }
+
+    .secondary {
+      color: #7658ad;
+      background: #e9e0f3;
+    }
+  </style>
 </head>
+
 <body>
-  <main class="main-content">
-    <h1>🛒 Marketplace</h1>
-    <p>Productos y servicios disponibles</p>
-    
-    <div class="cards">
-      <div class="card">
-        <div class="card-icon">📱</div>
-        <h3>Electrónica</h3>
-        <p>123 productos</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">👕</div>
-        <h3>Ropa</h3>
-        <p>456 productos</p>
-      </div>
-      <div class="card">
-        <div class="card-icon"></div>
-        <h3>Hogar</h3>
-        <p>789 productos</p>
-      </div>
+
+<main class="market">
+
+  <section class="hero">
+    <h1>Pasá y mirá ✨</h1>
+    <p>
+      Productos, servicios y oportunidades de nuestra comunidad.
+    </p>
+
+    <div class="search">
+      <i class="fas fa-search"></i>
+
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="¿Qué estás buscando?"
+      >
     </div>
-  </main>
-  
-  <script src="/public/js/auth.js"></script>
-  <script src="/public/js/nav.js"></script>
+  </section>
+
+  <div class="categories">
+    <button class="category active" data-category="all">
+      Todos
+    </button>
+
+    <button class="category" data-category="Vehículos">
+      Vehículos
+    </button>
+
+    <button class="category" data-category="Inmuebles">
+      Inmuebles
+    </button>
+
+    <button class="category" data-category="Tecnología">
+      Tecnología
+    </button>
+
+    <button class="category" data-category="Moda">
+      Moda
+    </button>
+
+    <button class="category" data-category="Servicios">
+      Servicios
+    </button>
+  </div>
+
+  <h2 class="section-title">Publicaciones</h2>
+
+  <div id="loading" class="loading">
+    Cargando publicaciones...
+  </div>
+
+  <section id="products"
+           class="products"></section>
+
+  <div id="empty"
+       class="empty"
+       style="display:none">
+    <i class="fas fa-store"
+       style="font-size:40px"></i>
+
+    <p style="margin-top:12px">
+      Todavía no hay publicaciones disponibles.
+    </p>
+  </div>
+
+</main>
+
+<div id="productModal" class="modal">
+
+  <div class="modal-card">
+
+    <button class="close"
+            onclick="closeProduct()">
+      <i class="fas fa-times"></i>
+    </button>
+
+    <div id="productDetail"></div>
+
+  </div>
+</div>
+
+<script src="/public/js/auth.js"></script>
+<script src="/public/js/app-shell.js"></script>
+
+<script>
+  let products = [];
+  let filtered = [];
+
+  const productsEl =
+    document.getElementById('products');
+
+  const loadingEl =
+    document.getElementById('loading');
+
+  const emptyEl =
+    document.getElementById('empty');
+
+  async function init() {
+    if (!window.PyMAuth.requireAuth()) return;
+
+    await window.PyMAuth.verifySession();
+
+    await loadProducts();
+  }
+
+  async function loadProducts() {
+    loadingEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+
+    try {
+      const response =
+        await fetch('/api/marketplace/products');
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+          'No se pudieron cargar las publicaciones'
+        );
+      }
+
+      products = Array.isArray(data)
+        ? data
+        : data.data || [];
+
+      filtered = [...products];
+
+      renderProducts();
+
+    } catch (error) {
+
+      console.error(error);
+
+      productsEl.innerHTML = '';
+
+      emptyEl.innerHTML = `
+        <i class="fas fa-circle-exclamation"
+           style="font-size:40px"></i>
+
+        <p style="margin-top:12px">
+          No pudimos cargar las publicaciones.
+        </p>
+      `;
+
+      emptyEl.style.display = 'block';
+
+    } finally {
+      loadingEl.style.display = 'none';
+    }
+  }
+
+  function renderProducts() {
+
+    if (!filtered.length) {
+      productsEl.innerHTML = '';
+      emptyEl.style.display = 'block';
+      return;
+    }
+
+    emptyEl.style.display = 'none';
+
+    productsEl.innerHTML =
+      filtered.map(product => {
+
+        const image =
+          product.images?.[0] ||
+          '/public/assets/default-product.jpg';
+
+        const sellerAvatar =
+          product.seller?.avatar ||
+          '/public/assets/default-avatar.png';
+
+        return `
+          <article
+            class="product"
+            onclick="openProduct('${product.id}')">
+
+            <img
+              class="product-image"
+              src="${escapeHtml(image)}"
+              alt="${escapeHtml(product.title)}"
+              onerror="this.style.visibility='hidden'">
+
+            <div class="product-body">
+
+              <div class="product-category">
+                ${escapeHtml(product.category)}
+              </div>
+
+              <h3 class="product-title">
+                ${escapeHtml(product.title)}
+              </h3>
+
+              <p class="product-description">
+                ${escapeHtml(
+                  product.description || ''
+                ).substring(0, 110)}
+              </p>
+
+              <div class="product-price">
+                ${formatPrice(product.price)}
+              </div>
+
+              <div class="seller">
+
+                <img
+                  src="${escapeHtml(sellerAvatar)}"
+                  alt="">
+
+                <span>
+                  ${escapeHtml(
+                    product.seller?.name ||
+                    'Usuario'
+                  )}
+
+                  ${
+                    product.seller?.verified
+                      ? ' ✓'
+                      : ''
+                  }
+                </span>
+
+              </div>
+
+            </div>
+          </article>
+        `;
+      }).join('');
+  }
+
+  async function openProduct(id) {
+
+    const modal =
+      document.getElementById('productModal');
+
+    const detail =
+      document.getElementById('productDetail');
+
+    detail.innerHTML =
+      '<div class="loading">Cargando...</div>';
+
+    modal.classList.add('open');
+
+    try {
+
+      const response =
+        await fetch(
+          `/api/marketplace/products/${encodeURIComponent(id)}`
+        );
+
+      const product =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          product.error ||
+          'Publicación no encontrada'
+        );
+      }
+
+      const image =
+        product.images?.[0] ||
+        '/public/assets/default-product.jpg';
+
+      detail.innerHTML = `
+
+        <img
+          class="detail-image"
+          src="${escapeHtml(image)}"
+          alt="${escapeHtml(product.title)}">
+
+        <div class="product-category">
+          ${escapeHtml(product.category)}
+        </div>
+
+        <h2 style="margin-top:6px">
+          ${escapeHtml(product.title)}
+        </h2>
+
+        <div class="detail-price">
+          ${formatPrice(product.price)}
+        </div>
+
+        <p style="line-height:1.6;color:#716978">
+          ${escapeHtml(product.description)}
+        </p>
+
+        <div class="detail-seller">
+
+          <strong>Publicado por</strong>
+
+          <div class="seller"
+               style="border:0;padding:10px 0 0">
+
+            <img
+              src="${escapeHtml(
+                product.seller?.avatar ||
+                '/public/assets/default-avatar.png'
+              )}">
+
+            <span>
+              ${escapeHtml(
+                product.seller?.name ||
+                'Usuario'
+              )}
+            </span>
+
+          </div>
+
+        </div>
+
+        <div class="actions">
+
+          <button
+            class="action primary"
+            onclick="openChat('${escapeHtml(
+              product.seller?.id || ''
+            )}')">
+
+            <i class="fas fa-comments"></i>
+            Contactar
+
+          </button>
+
+          <button
+            class="action secondary"
+            onclick="alert('La compra se conecta en el módulo de pedidos y Mercado Pago.')">
+
+            <i class="fas fa-shopping-bag"></i>
+            Comprar
+
+          </button>
+
+        </div>
+      `;
+
+    } catch (error) {
+
+      detail.innerHTML = `
+        <div class="empty">
+          ${escapeHtml(error.message)}
+        </div>
+      `;
+    }
+  }
+
+  function closeProduct() {
+    document
+      .getElementById('productModal')
+      .classList.remove('open');
+  }
+
+  function openChat(userId) {
+
+    if (!userId) return;
+
+    window.location.href =
+      `/chat.html?user=${encodeURIComponent(userId)}`;
+  }
+
+  document
+    .getElementById('searchInput')
+    .addEventListener('input', event => {
+
+      const query =
+        event.target.value
+          .trim()
+          .toLowerCase();
+
+      filtered =
+        products.filter(product => {
+
+          const text = [
+            product.title,
+            product.description,
+            product.category,
+            product.seller?.name
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLowerCase();
+
+          return text.includes(query);
+        });
+
+      renderProducts();
+    });
+
+  document
+    .querySelectorAll('.category')
+    .forEach(button => {
+
+      button.addEventListener('click', () => {
+
+        document
+          .querySelectorAll('.category')
+          .forEach(b =>
+            b.classList.remove('active')
+          );
+
+        button.classList.add('active');
+
+        const category =
+          button.dataset.category;
+
+        filtered =
+          category === 'all'
+            ? [...products]
+            : products.filter(
+                p =>
+                  String(p.category)
+                    .toLowerCase() ===
+                  category.toLowerCase()
+              );
+
+        renderProducts();
+      });
+    });
+
+  function formatPrice(value) {
+    return new Intl.NumberFormat(
+      'es-AR',
+      {
+        style: 'currency',
+        currency: 'ARS',
+        maximumFractionDigits: 0
+      }
+    ).format(Number(value) || 0);
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  init();
+</script>
+
 </body>
-</html>
+  </html>
