@@ -26,7 +26,7 @@ export default function HomePage() {
     } catch (err) {
       console.error('Error cargando productos:', err);
     } finally {
-      // OBLIGATORIO: Apaga el spinner aunque la DB esté vacía o dé error
+      // Fuerza a apagar el estado de carga aunque la DB esté vacía o tenga un error
       setLoading(false);
     }
   }
@@ -40,7 +40,7 @@ export default function HomePage() {
   return (
     <div className="max-w-md mx-auto p-5 space-y-6">
       
-      {/* Header con Isologo PyM y Nombre Pase y Mire */}
+      {/* Cabecera con Isologo PyM y Marca Pase y Mire */}
       <header className="flex justify-between items-center pt-2">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#E07A5F] to-[#F4A261] flex items-center justify-center text-white font-black text-lg shadow-[4px_6px_12px_rgba(224,122,95,0.4)]">
@@ -92,7 +92,7 @@ export default function HomePage() {
       {/* Título de Sección */}
       <h2 className="text-lg font-extrabold text-[#3D405B]">Publicaciones</h2>
 
-      {/* Catálogo */}
+      {/* Catálogo de Productos */}
       {loading ? (
         <div className="text-center py-12 text-[#818C78] font-medium text-xs animate-pulse">
           Cargando catálogo de Pase y Mire...
@@ -134,5 +134,5 @@ export default function HomePage() {
 
     </div>
   );
-                                   }
-    
+            }
+                     
