@@ -7,13 +7,15 @@ const supabase = require('../utils/supabase');
 
 const app = express();
 
+// ============================================================
+// CONFIGURACIÓN
+// ============================================================
+
 const PORT = process.env.PORT || 3000;
 
 // ============================================================
-// MIDDLEWARE GLOBAL
+// MIDDLEWARE
 // ============================================================
-
-app.disable('x-powered-by');
 
 app.use(cors({
   origin: '*',
@@ -41,70 +43,26 @@ app.use(express.urlencoded({
 }));
 
 // ============================================================
-// FUNCIÓN PARA CARGAR ROUTERS DE FORMA SEGURA
+// AUTENTICACIÓN
 // ============================================================
 
-function mountRouter(path, modulePath, name) {
-  try {
-    const router = require(modulePath);
+const authRouter = require('../routes/auth');
 
-    if (typeof router !== 'function') {
-      console.warn(`⚠️ ${name}: módulo sin router Express válido`);
-      return false;
-    }
+app.use('/api/auth', authRouter);
 
-    app.use(path, router);
+// ============================================================
+// UPLOAD / CLOUDINARY
+// ============================================================
 
-    console.log(`✅ ${name} cargado en ${path}`);
-    return true;
+try {
+  const uploadRouter = require('../routes/upload');
 
-  } catch (error) {
-    console.error(`❌ ${name}: ${error.message}`);
-    return false;
-  }
+  app.use('/api/upload', uploadRouter);
+
+  console.log('✅ Upload cargado');
+} catch (error) {
+  console.log('⚠️ Upload no disponible:', error.message);
 }
-
-// ============================================================
-// RUTAS PRINCIPALES
-// ============================================================
-
-// Autenticación
-mountRouter(
-  '/api/auth',
-  './auth',
-  'Auth'
-);
-
-// Upload / Cloudinary
-mountRouter(
-  '/api/upload',
-  './upload',
-  'Upload'
-);
-
-// ============================================================
-// RUTAS FUTURAS
-// ============================================================
-//
-// IMPORTANTE:
-// Estas rutas quedan reservadas para los módulos de la aplicación.
-// Los módulos se incorporarán progresivamente sin crear nuevas
-// Serverless Functions en Vercel.
-//
-// /api/admin
-// /api/advertising
-// /api/card
-// /api/friends
-// /api/logistics
-// /api/notifications
-// /api/orders
-// /api/payments
-// /api/products
-// /api/qr
-// /api/reels
-// /api/wallet
-//
-// ============================================================
 
 // ============================================================
 // HEALTH CHECK
@@ -139,7 +97,6 @@ app.get('/api/test', async (req, res) => {
         success: false,
         message: 'Error de conexión con Supabase',
         supabase: 'Desconectado',
-        database: 'Supabase',
         error: {
           message: error.message,
           code: error.code || '',
@@ -177,26 +134,7 @@ app.get('/', (req, res) => {
   res.json({
     success: true,
     message: 'Pase y Mire API',
-    status: 'online',
-    version: '1.0.0'
-  });
-});
-
-// ============================================================
-// INFORMACIÓN DE LA API
-// ============================================================
-
-app.get('/api', (req, res) => {
-  res.json({
-    success: true,
-    name: 'Pase y Mire API',
-    version: '1.0.0',
-    status: 'online',
-    services: {
-      auth: '/api/auth',
-      upload: '/api/upload',
-      health: '/api/test'
-    }
+    status: 'online'
   });
 });
 
@@ -207,21 +145,16 @@ app.get('/api', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Ruta no encontrada',
-    path: req.originalUrl
+    error: 'Ruta no encontrada'
   });
 });
 
 // ============================================================
-// MANEJO CENTRALIZADO DE ERRORES
+// MANEJO DE ERRORES
 // ============================================================
 
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
-
-  if (res.headersSent) {
-    return next(err);
-  }
 
   res.status(err.status || 500).json({
     success: false,
@@ -241,9 +174,5 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`🚀 Pase y Mire API en puerto ${PORT}`);
   });
 }
-
-// ============================================================
-// VERCEL / EXPRESS
-// ============================================================
 
 module.exports = app;
