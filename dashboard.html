@@ -4,24 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pase y Mire - Dashboard</title>
-  <link rel="stylesheet" href="./public/css/variables.css">
-  <link rel="stylesheet" href="./public/css/style.css">
+  <link rel="stylesheet" href="/public/css/styles.css">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="nav-brand">Pase y Mire</div>
-    <div class="nav-user">
-      <span id="userName">Admin</span>
-      <button id="logoutBtn" class="btn-small">Salir</button>
-    </div>
-  </nav>
-
-  <main class="dashboard">
+  <main class="main-content">
     <div class="dashboard-header">
       <h2>Panel de control</h2>
-      <p class="welcome" id="mensaje">Cargando...</p>
+      <p class="welcome" id="mensaje">Bienvenido</p>
     </div>
-
+    
     <div class="cards">
       <div class="card">
         <div class="card-icon">👁</div>
@@ -29,7 +20,7 @@
         <p class="number" id="visitas">—</p>
       </div>
       <div class="card">
-        <div class="card-icon">👥</div>
+        <div class="card-icon"></div>
         <h3>Usuarios</h3>
         <p class="number" id="usuarios">—</p>
       </div>
@@ -39,18 +30,18 @@
         <p class="number" id="posts">—</p>
       </div>
     </div>
-
+    
     <div class="quick-actions">
       <h3>Acciones rápidas</h3>
       <div class="actions-grid">
-        <a href="./marketplace.html" class="action-btn">Ver Marketplace</a>
-        <a href="#" class="action-btn">Modo Chofer</a>
-        <a href="#" class="action-btn">Publicar producto</a>
+        <a href="/marketplace.html" class="btn">Ver Marketplace</a>
+        <a href="/orders.html" class="btn">Ver Pedidos</a>
+        <a href="/wallet.html" class="btn">Mi Billetera</a>
       </div>
     </div>
   </main>
-
-  <script src="./public/js/auth.js"></script>
-  <script src="./public/js/app.js"></script>
+  
+  <script src="/public/js/auth.js"></script>
+  <script src="/public/js/nav.js"></script>
 </body>
 </html>
