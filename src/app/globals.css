@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-clay: #F5EFE6;
+  --terracotta: #E07A5F;
+  --terracotta-soft: #F4A261;
+  --sage-green: #818C78;
+  --card-bg: #FAF6F0;
+}
+
+body {
+  background-color: #F5EFE6;
+  color: #3D405B;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Efectos Claymorphism (Sombras infladas estilo arcilla) */
+.clay-card {
+  background: #FAF6F0;
+  border-radius: 1.75rem;
+  box-shadow: 
+    10px 10px 20px rgba(210, 190, 175, 0.45),
+    -10px -10px 20px rgba(255, 255, 255, 0.85);
+}
+
+.clay-button {
+  background: linear-gradient(135deg, #E07A5F, #F4A261);
+  box-shadow: 
+    4px 8px 16px rgba(224, 122, 95, 0.35),
+    inset 2px 2px 4px rgba(255, 255, 255, 0.4);
+}
+
+.clay-input {
+  background: #FAF6F0;
+  box-shadow: 
+    inset 3px 3px 6px rgba(210, 190, 175, 0.4),
+    inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Ocultar barra de scroll horizontal */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  }
