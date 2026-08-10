@@ -1,1000 +1,448 @@
-const supabase = require('../utils/supabase');
+const express = require('express');
 
-const OPEN_REQUEST_STATUSES = ['pending', 'open'];
-const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn'];
+const { authMiddleware } = require('../utils/auth');
 
-const PROVIDER_AVAILABILITY = [
-  'available',
-  'in_trip',
-  'busy',
-  'available_at'
-];
+const {
+  createServiceRequest,
+  getAvailableRequests,
+  getServiceRequest,
+  createOffer,
+  getOffers,
+  acceptOffer,
+  withdrawOffer,
+  updateProviderAvailability,
+  getMyRequests,
+  getMyOffers,
+  getProviderByUserId
+} = require('../services/logisticsService');
 
-function normalizeString(value, maxLength = 500) {
-  if (value === undefined || value === null) {
-    return '';
-  }
+const router = express.Router();
 
-  return String(value).trim().slice(0, maxLength);
-}
-
-function parseOptionalNumber(value) {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-
-  const number = Number(value);
-
-  return Number.isFinite(number) ? number : null;
-}
-
-function parsePositiveNumber(value) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number) || number <= 0) {
-    return null;
-  }
-
-  return number;
-}
-
-function parsePositiveInteger(value) {
-  if (value === undefined || value === null || value === '') {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isInteger(number) || number <= 0) {
-    return null;
-  }
-
-  return number;
-}
+router.use(authMiddleware);
 
 // ============================================================
-// PRESTADOR
+// CREAR SOLICITUD LOGÍSTICA
+// POST /api/logistics/requests
 // ============================================================
 
-async function getProviderByUserId(userId) {
-  const { data, error } = await supabase
-    .from('logistics_providers')
-    .select(`
-      id,
-      user_id,
-      service_type,
-      verified,
-      active,
-      rating,
-      latitude,
-      longitude,
-      availability_status,
-      availability_note,
-      available_at,
-      created_at,
-      updated_at
-    `)
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(`Error obteniendo prestador: ${error.message}`);
-  }
-
-  return data;
-}
-
-async function requireProvider(userId) {
-  const provider = await getProviderByUserId(userId);
-
-  if (!provider) {
-    const error = new Error(
-      'El usuario no está registrado como prestador de logística'
-    );
-
-    error.statusCode = 403;
-
-    throw error;
-  }
-
-  if (!provider.verified) {
-    const error = new Error(
-      'El prestador todavía no está verificado'
-    );
-
-    error.statusCode = 403;
-
-    throw error;
-  }
-
-  return provider;
-}
-
-// ============================================================
-// CREAR SOLICITUD
-// ============================================================
-
-async function createServiceRequest(userId, payload) {
-  const {
-    serviceType,
-    origin,
-    destination,
-    originLat,
-    originLng,
-    destinationLat,
-    destinationLng,
-    packageDescription,
-    packageWeight,
-    packageDimensions,
-    requesterNote,
-    requestedDate
-  } = payload;
-
-  const normalizedServiceType =
-    normalizeString(serviceType, 100);
-
-  const normalizedOrigin =
-    normalizeString(origin, 500);
-
-  const normalizedDestination =
-    normalizeString(destination, 500);
-
-  if (!normalizedServiceType) {
-    throw Object.assign(
-      new Error('El tipo de servicio es obligatorio'),
-      { statusCode: 400 }
-    );
-  }
-
-  if (!normalizedOrigin) {
-    throw Object.assign(
-      new Error('El origen es obligatorio'),
-      { statusCode: 400 }
-    );
-  }
-
-  if (!normalizedDestination) {
-    throw Object.assign(
-      new Error('El destino es obligatorio'),
-      { statusCode: 400 }
-    );
-  }
-
-  const weight =
-    packageWeight === undefined ||
-    packageWeight === null ||
-    packageWeight === ''
-      ? 0
-      : Number(packageWeight);
-
-  if (!Number.isFinite(weight) || weight < 0) {
-    throw Object.assign(
-      new Error('El peso del envío no es válido'),
-      { statusCode: 400 }
-    );
-  }
-
-  const requestedDateValue =
-    requestedDate || null;
-
-  if (requestedDateValue) {
-    const date = new Date(requestedDateValue);
-
-    if (Number.isNaN(date.getTime())) {
-      throw Object.assign(
-        new Error('La fecha solicitada no es válida'),
-        { statusCode: 400 }
+router.post('/requests', async (req, res) => {
+  try {
+    const request =
+      await createServiceRequest(
+        req.user.id,
+        req.body || {}
       );
-    }
-  }
 
-  const { data, error } = await supabase
-    .from('service_requests')
-    .insert({
-      requester_id: userId,
-      service_type: normalizedServiceType,
-      origin: normalizedOrigin,
-      destination: normalizedDestination,
-      origin_lat: parseOptionalNumber(originLat),
-      origin_lng: parseOptionalNumber(originLng),
-      destination_lat: parseOptionalNumber(destinationLat),
-      destination_lng: parseOptionalNumber(destinationLng),
-      price: 0,
-      platform_fee: 0,
-      status: 'pending',
-      package_description:
-        normalizeString(packageDescription, 1000),
-      package_weight: weight,
-      package_dimensions:
-        normalizeString(packageDimensions, 300),
-      requester_note:
-        normalizeString(requesterNote, 1000),
-      requested_date: requestedDateValue
-    })
-    .select(`
-      id,
-      requester_id,
-      provider_id,
-      service_type,
-      origin,
-      destination,
-      origin_lat,
-      origin_lng,
-      destination_lat,
-      destination_lng,
-      price,
-      platform_fee,
-      status,
-      package_description,
-      package_weight,
-      package_dimensions,
-      requester_note,
-      requested_date,
-      accepted_at,
-      completed_at,
-      created_at,
-      updated_at
-    `)
-    .single();
+    return res.status(201).json({
+      success: true,
+      request
+    });
 
-  if (error) {
-    throw new Error(
-      `No se pudo crear la solicitud: ${error.message}`
-    );
-  }
-
-  return data;
-}
-
-// ============================================================
-// LISTAR SOLICITUDES DISPONIBLES
-// ============================================================
-
-async function getAvailableRequests(userId) {
-  const provider = await requireProvider(userId);
-
-  if (!provider.active) {
-    return [];
-  }
-
-  if (
-    !PROVIDER_AVAILABILITY.includes(
-      provider.availability_status
-    )
-  ) {
-    return [];
-  }
-
-  if (
-    !['available', 'available_at']
-      .includes(provider.availability_status)
-  ) {
-    return [];
-  }
-
-  let query = supabase
-    .from('service_requests')
-    .select(`
-      id,
-      requester_id,
-      provider_id,
-      service_type,
-      origin,
-      destination,
-      origin_lat,
-      origin_lng,
-      destination_lat,
-      destination_lng,
-      price,
-      platform_fee,
-      status,
-      package_description,
-      package_weight,
-      package_dimensions,
-      requester_note,
-      requested_date,
-      created_at,
-      updated_at
-    `)
-    .in('status', OPEN_REQUEST_STATUSES)
-    .is('provider_id', null)
-    .order('created_at', {
-      ascending: false
-    })
-    .limit(100);
-
-  if (provider.service_type) {
-    query = query.eq(
-      'service_type',
-      provider.service_type
-    );
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    throw new Error(
-      `No se pudieron obtener las solicitudes: ${error.message}`
-    );
-  }
-
-  return data || [];
-}
-
-// ============================================================
-// OBTENER SOLICITUD
-// ============================================================
-
-async function getServiceRequest(
-  requestId,
-  userId
-) {
-  const { data: request, error } = await supabase
-    .from('service_requests')
-    .select(`
-      id,
-      requester_id,
-      provider_id,
-      service_type,
-      origin,
-      destination,
-      origin_lat,
-      origin_lng,
-      destination_lat,
-      destination_lng,
-      price,
-      platform_fee,
-      status,
-      package_description,
-      package_weight,
-      package_dimensions,
-      requester_note,
-      requested_date,
-      accepted_at,
-      completed_at,
-      created_at,
-      updated_at
-    `)
-    .eq('id', requestId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(
-      `Error consultando la solicitud: ${error.message}`
-    );
-  }
-
-  if (!request) {
-    const notFound = new Error(
-      'Solicitud logística no encontrada'
-    );
-
-    notFound.statusCode = 404;
-
-    throw notFound;
-  }
-
-  const provider =
-    request.provider_id
-      ? await supabase
-          .from('logistics_providers')
-          .select('id,user_id')
-          .eq('id', request.provider_id)
-          .maybeSingle()
-      : { data: null };
-
-  const providerUserId =
-    provider.data?.user_id || null;
-
-  if (
-    request.requester_id !== userId &&
-    providerUserId !== userId
-  ) {
-    const forbidden = new Error(
-      'No tenés permiso para ver esta solicitud'
-    );
-
-    forbidden.statusCode = 403;
-
-    throw forbidden;
-  }
-
-  return request;
-}
-
-// ============================================================
-// CREAR OFERTA
-// ============================================================
-
-async function createOffer(
-  requestId,
-  userId,
-  payload
-) {
-  const provider =
-    await requireProvider(userId);
-
-  if (!provider.active) {
-    throw Object.assign(
-      new Error(
-        'El prestador no está activo para recibir solicitudes'
-      ),
-      { statusCode: 403 }
-    );
-  }
-
-  if (
-    !['available', 'available_at']
-      .includes(provider.availability_status)
-  ) {
-    throw Object.assign(
-      new Error(
-        'El prestador no está disponible para realizar una oferta'
-      ),
-      { statusCode: 409 }
-    );
-  }
-
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        requester_id,
-        provider_id,
-        service_type,
-        status
-      `)
-      .eq('id', requestId)
-      .maybeSingle();
-
-  if (requestError) {
-    throw new Error(
-      `Error consultando la solicitud: ${requestError.message}`
-    );
-  }
-
-  if (!request) {
-    throw Object.assign(
-      new Error('Solicitud logística no encontrada'),
-      { statusCode: 404 }
-    );
-  }
-
-  if (
-    !OPEN_REQUEST_STATUSES.includes(
-      request.status
-    )
-  ) {
-    throw Object.assign(
-      new Error('La solicitud ya no está abierta'),
-      { statusCode: 409 }
-    );
-  }
-
-  if (request.provider_id) {
-    throw Object.assign(
-      new Error('La solicitud ya tiene un prestador asignado'),
-      { statusCode: 409 }
-    );
-  }
-
-  if (
-    request.service_type !== provider.service_type
-  ) {
-    throw Object.assign(
-      new Error(
-        'El tipo de servicio no coincide con el servicio del prestador'
-      ),
-      { statusCode: 400 }
-    );
-  }
-
-  if (request.requester_id === userId) {
-    throw Object.assign(
-      new Error(
-        'No podés ofertar sobre tu propia solicitud'
-      ),
-      { statusCode: 400 }
-    );
-  }
-
-  const price =
-    parsePositiveNumber(payload.price);
-
-  if (price === null) {
-    throw Object.assign(
-      new Error(
-        'El precio de la oferta debe ser mayor a cero'
-      ),
-      { statusCode: 400 }
-    );
-  }
-
-  const estimatedMinutes =
-    parsePositiveInteger(
-      payload.estimatedMinutes
-    );
-
-  const message =
-    normalizeString(payload.message, 1000);
-
-  const { data: offer, error } =
-    await supabase
-      .from('logistics_offers')
-      .insert({
-        request_id: requestId,
-        provider_id: provider.id,
-        price,
-        message,
-        estimated_minutes: estimatedMinutes,
-        status: 'pending'
-      })
-      .select(`
-        id,
-        request_id,
-        provider_id,
-        price,
-        message,
-        estimated_minutes,
-        status,
-        created_at,
-        updated_at
-      `)
-      .single();
-
-  if (error) {
-    if (error.code === '23505') {
-      throw Object.assign(
-        new Error(
-          'Ya realizaste una oferta para esta solicitud'
-        ),
-        { statusCode: 409 }
-      );
-    }
-
-    throw new Error(
-      `No se pudo crear la oferta: ${error.message}`
-    );
-  }
-
-  return offer;
-}
-
-// ============================================================
-// LISTAR OFERTAS
-// ============================================================
-
-async function getOffers(
-  requestId,
-  userId
-) {
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        requester_id,
-        provider_id,
-        status
-      `)
-      .eq('id', requestId)
-      .maybeSingle();
-
-  if (requestError) {
-    throw new Error(
-      `Error consultando la solicitud: ${requestError.message}`
-    );
-  }
-
-  if (!request) {
-    throw Object.assign(
-      new Error('Solicitud logística no encontrada'),
-      { statusCode: 404 }
-    );
-  }
-
-  let providerUserId = null;
-
-  if (request.provider_id) {
-    const { data: assignedProvider } =
-      await supabase
-        .from('logistics_providers')
-        .select('user_id')
-        .eq('id', request.provider_id)
-        .maybeSingle();
-
-    providerUserId =
-      assignedProvider?.user_id || null;
-  }
-
-  const isRequester =
-    request.requester_id === userId;
-
-  const isAssignedProvider =
-    providerUserId === userId;
-
-  if (
-    !isRequester &&
-    !isAssignedProvider
-  ) {
-    const currentProvider =
-      await getProviderByUserId(userId);
-
-    if (!currentProvider) {
-      throw Object.assign(
-        new Error(
-          'No tenés permiso para ver estas ofertas'
-        ),
-        { statusCode: 403 }
-      );
-    }
-
-    const { data: ownOffer } =
-      await supabase
-        .from('logistics_offers')
-        .select('id')
-        .eq('request_id', requestId)
-        .eq('provider_id', currentProvider.id)
-        .maybeSingle();
-
-    if (!ownOffer) {
-      throw Object.assign(
-        new Error(
-          'No tenés permiso para ver estas ofertas'
-        ),
-        { statusCode: 403 }
-      );
-    }
-  }
-
-  const { data: offers, error } =
-    await supabase
-      .from('logistics_offers')
-      .select(`
-        id,
-        request_id,
-        provider_id,
-        price,
-        message,
-        estimated_minutes,
-        status,
-        created_at,
-        updated_at,
-        logistics_providers (
-          id,
-          user_id,
-          service_type,
-          verified,
-          rating,
-          latitude,
-          longitude,
-          availability_status,
-          availability_note,
-          available_at
-        )
-      `)
-      .eq('request_id', requestId)
-      .order('price', {
-        ascending: true
-      })
-      .order('created_at', {
-        ascending: true
-      });
-
-  if (error) {
-    throw new Error(
-      `No se pudieron obtener las ofertas: ${error.message}`
-    );
-  }
-
-  const providerIds = [
-    ...new Set(
-      (offers || [])
-        .map(
-          offer =>
-            offer.logistics_providers?.user_id
-        )
-        .filter(Boolean)
-    )
-  ];
-
-  let users = [];
-
-  if (providerIds.length > 0) {
-    const { data: providerUsers, error: usersError } =
-      await supabase
-        .from('users')
-        .select(`
-          id,
-          name,
-          avatar,
-          verified,
-          rating
-        `)
-        .in('id', providerIds);
-
-    if (usersError) {
-      throw new Error(
-        `No se pudieron obtener los perfiles de prestadores: ${usersError.message}`
-      );
-    }
-
-    users = providerUsers || [];
-  }
-
-  const userMap = new Map(
-    users.map(user => [
-      String(user.id),
-      user
-    ])
-  );
-
-  return (offers || []).map(offer => ({
-    ...offer,
-    provider: offer.logistics_providers
-      ? {
-          ...offer.logistics_providers,
-          user:
-            userMap.get(
-              String(
-                offer.logistics_providers.user_id
-              )
-            ) || null
-        }
-      : null
-  }));
-}
-
-// ============================================================
-// ACEPTAR OFERTA
-// ============================================================
-
-async function acceptOffer(
-  requestId,
-  offerId,
-  userId
-) {
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select('id,requester_id,status')
-      .eq('id', requestId)
-      .maybeSingle();
-
-  if (requestError) {
-    throw new Error(
-      `Error consultando la solicitud: ${requestError.message}`
-    );
-  }
-
-  if (!request) {
-    throw Object.assign(
-      new Error('Solicitud logística no encontrada'),
-      { statusCode: 404 }
-    );
-  }
-
-  if (request.requester_id !== userId) {
-    throw Object.assign(
-      new Error(
-        'Solo el usuario que creó la solicitud puede aceptar una oferta'
-      ),
-      { statusCode: 403 }
-    );
-  }
-
-  if (
-    !OPEN_REQUEST_STATUSES.includes(
-      request.status
-    )
-  ) {
-    throw Object.assign(
-      new Error('La solicitud ya no está disponible'),
-      { statusCode: 409 }
-    );
-  }
-
-  const { data, error } =
-    await supabase.rpc(
-      'accept_logistics_offer',
-      {
-        p_request_id: requestId,
-        p_offer_id: offerId,
-        p_provider_id: (
-          await getOfferProviderId(
-            offerId,
-            requestId
-          )
-        )
-      }
-    );
-
-  if (error) {
+  } catch (error) {
     console.error(
-      '❌ Error aceptando oferta:',
+      '❌ POST /api/logistics/requests:',
       error
     );
 
-    const rpcError = new Error(
-      error.message ||
-      'No se pudo aceptar la oferta'
+    return res.status(
+      error.statusCode || 500
+    ).json({
+      success: false,
+      error:
+        error.statusCode
+          ? error.message
+          : 'No se pudo crear la solicitud logística'
+    });
+  }
+});
+
+// ============================================================
+// MIS SOLICITUDES
+// GET /api/logistics/requests/mine
+// ============================================================
+
+router.get('/requests/mine', async (req, res) => {
+  try {
+    const requests =
+      await getMyRequests(req.user.id);
+
+    return res.json({
+      success: true,
+      requests
+    });
+
+  } catch (error) {
+    console.error(
+      '❌ GET /api/logistics/requests/mine:',
+      error
     );
 
-    rpcError.statusCode =
-      error.code === 'P0001'
-        ? 409
-        : 500;
-
-    throw rpcError;
+    return res.status(
+      error.statusCode || 500
+    ).json({
+      success: false,
+      error:
+        error.statusCode
+          ? error.message
+          : 'No se pudieron obtener tus solicitudes'
+    });
   }
+});
 
-  return Array.isArray(data)
-    ? data[0]
-    : data;
-}
+// ============================================================
+// SOLICITUD POR ID
+// GET /api/logistics/requests/:requestId
+// ============================================================
 
-async function getOfferProviderId(
-  offerId,
-  requestId
-) {
-  const { data, error } =
-    await supabase
-      .from('logistics_offers')
-      .select('provider_id')
-      .eq('id', offerId)
-      .eq('request_id', requestId)
-      .maybeSingle();
+router.get(
+  '/requests/:requestId',
+  async (req, res) => {
+    try {
+      const request =
+        await getServiceRequest(
+          req.params.requestId,
+          req.user.id
+        );
 
-  if (error) {
-    throw new Error(
-      `Error consultando la oferta: ${error.message}`
-    );
+      return res.json({
+        success: true,
+        request
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ GET /api/logistics/requests/:requestId:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudo obtener la solicitud'
+      });
+    }
   }
+);
 
-  if (!data) {
-    const notFound = new Error(
-      'Oferta logística no encontrada'
-    );
+// ============================================================
+// SOLICITUDES DISPONIBLES PARA PRESTADORES
+// GET /api/logistics/requests/available
+// ============================================================
 
-    notFound.statusCode = 404;
+router.get(
+  '/requests/available',
+  async (req, res) => {
+    try {
+      const requests =
+        await getAvailableRequests(
+          req.user.id
+        );
 
-    throw notFound;
+      return res.json({
+        success: true,
+        requests
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ GET /api/logistics/requests/available:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudieron obtener las solicitudes disponibles'
+      });
+    }
   }
+);
 
-  return data.provider_id;
-}
+// ============================================================
+// CREAR OFERTA
+// POST /api/logistics/requests/:requestId/offers
+// ============================================================
+
+router.post(
+  '/requests/:requestId/offers',
+  async (req, res) => {
+    try {
+      const offer =
+        await createOffer(
+          req.params.requestId,
+          req.user.id,
+          req.body || {}
+        );
+
+      return res.status(201).json({
+        success: true,
+        offer
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ POST /api/logistics/requests/:requestId/offers:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudo crear la oferta'
+      });
+    }
+  }
+);
+
+// ============================================================
+// LISTAR OFERTAS DE UNA SOLICITUD
+// GET /api/logistics/requests/:requestId/offers
+// ============================================================
+
+router.get(
+  '/requests/:requestId/offers',
+  async (req, res) => {
+    try {
+      const offers =
+        await getOffers(
+          req.params.requestId,
+          req.user.id
+        );
+
+      return res.json({
+        success: true,
+        offers
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ GET /api/logistics/requests/:requestId/offers:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudieron obtener las ofertas'
+      });
+    }
+  }
+);
+
+// ============================================================
+// ACEPTAR OFERTA
+// POST /api/logistics/requests/:requestId/offers/:offerId/accept
+// ============================================================
+
+router.post(
+  '/requests/:requestId/offers/:offerId/accept',
+  async (req, res) => {
+    try {
+      const offer =
+        await acceptOffer(
+          req.params.requestId,
+          req.params.offerId,
+          req.user.id
+        );
+
+      return res.json({
+        success: true,
+        message: 'Oferta aceptada',
+        offer
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ POST /api/logistics/requests/:requestId/offers/:offerId/accept:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudo aceptar la oferta'
+      });
+    }
+  }
+);
 
 // ============================================================
 // RETIRAR OFERTA
+// DELETE /api/logistics/offers/:offerId
 // ============================================================
 
-async function withdrawOffer(
-  offerId,
-  userId
-) {
-  const provider =
-    await requireProvider(userId);
+router.delete(
+  '/offers/:offerId',
+  async (req, res) => {
+    try {
+      const offer =
+        await withdrawOffer(
+          req.params.offerId,
+          req.user.id
+        );
 
-  const { data, error } =
-    await supabase.rpc(
-      'withdraw_logistics_offer',
-      {
-        p_offer_id: offerId,
-        p_provider_id: provider.id
+      return res.json({
+        success: true,
+        message: 'Oferta retirada',
+        offer
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ DELETE /api/logistics/offers/:offerId:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudo retirar la oferta'
+      });
+    }
+  }
+);
+
+// ============================================================
+// MIS OFERTAS
+// GET /api/logistics/offers/mine
+// ============================================================
+
+router.get(
+  '/offers/mine',
+  async (req, res) => {
+    try {
+      const offers =
+        await getMyOffers(
+          req.user.id
+        );
+
+      return res.json({
+        success: true,
+        offers
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ GET /api/logistics/offers/mine:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudieron obtener tus ofertas'
+      });
+    }
+  }
+);
+
+// ============================================================
+// ACTUALIZAR DISPONIBILIDAD
+// PATCH /api/logistics/provider/availability
+// ============================================================
+
+router.patch(
+  '/provider/availability',
+  async (req, res) => {
+    try {
+      const provider =
+        await updateProviderAvailability(
+          req.user.id,
+          req.body || {}
+        );
+
+      return res.json({
+        success: true,
+        provider
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ PATCH /api/logistics/provider/availability:',
+        error
+      );
+
+      return res.status(
+        error.statusCode || 500
+      ).json({
+        success: false,
+        error:
+          error.statusCode
+            ? error.message
+            : 'No se pudo actualizar la disponibilidad'
+      });
+    }
+  }
+);
+
+// ============================================================
+// MI PERFIL DE PRESTADOR
+// GET /api/logistics/provider/me
+// ============================================================
+
+router.get(
+  '/provider/me',
+  async (req, res) => {
+    try {
+      const provider =
+        await getProviderByUserId(
+          req.user.id
+        );
+
+      if (!provider) {
+        return res.status(404).json({
+          success: false,
+          error:
+            'No tenés un perfil de prestador de logística'
+        });
       }
-    );
 
-  if (error) {
-    const rpcError = new Error(
-      error.message ||
-      'No se pudo retirar la oferta'
-    );
+      return res.json({
+        success: true,
+        provider
+      });
 
-    rpcError.statusCode =
-      error.code === 'P0001'
-        ? 409
-        : 500;
-
-    throw rpcError;
-  }
-
-  return Array.isArray(data)
-    ? data[0]
-    : data;
-}
-
-// ============================================================
-// DISPONIBILIDAD DEL PRESTADOR
-// ============================================================
-
-async function updateProviderAvailability(
-  userId,
-  payload
-) {
-  const provider =
-    await requireProvider(userId);
-
-  const status =
-    normalizeString(
-      payload.status,
-      30
-    );
-
-  if (
-    !PROVIDER_AVAILABILITY.includes(status)
-  ) {
-    throw Object.assign(
-      new Error(
-        'Estado de disponibilidad inválido'
-      ),
-      { statusCode: 400 }
-    );
-  }
-
-  const note =
-    normalizeString(
-      payload.note,
-      500
-    );
-
-  let availableAt = null;
-
-  if (status === 'available_at') {
-    if (!payload.availableAt) {
-      throw Object.assign(
-        new Error(
-          'Debés indicar cuándo estarás disponible'
-        ),
-        { statusCode: 400 }
+    } catch (error) {
+      console.error(
+        '❌ GET /api/logistics/provider/me:',
+        error
       );
+
+      return res.status(500).json({
+        success: false,
+        error:
+          'No se pudo obtener el perfil de prestador'
+      });
     }
-
-    const date =
-      new Date(payload.availableAt);
-
-    if (Number.isNaN(date.getTime())) {
-      throw Object.assign(
-        new Error(
-          'La fecha de disponibilidad no es válida'
-        ),
-        { statusCode: 400 }
-      );
-    }
-
-    if (date.getTime() <= Date.now()) {
-      throw Object.assign(
-        new Error(
-          'La disponibilidad debe ser futura'
-        ),
-        { statusCode: 400 }
-      );
-    }
-
-    availableAt =
-      date.toISOString();
   }
+);
 
-  const { data, error } =
-    await supabase
-      .from('logistics_providers')
-      .update({
-        availability_status: status,
-        availability_note: note,
-        available_at: availableAt,
-        active:
-          status !== 'busy',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', provider.id)
-      .select(`
-        id,
-        user_id,
-        service_type,
-        verified,
-        active,
-        rating,
-        latitude,
-        longitude,
-        availability_status,
-        availability_no
+module.exports = router;
