@@ -7,6 +7,7 @@ const supabase = require('../utils/supabase');
 const authRouter = require('../routes/auth');
 const uploadRouter = require('../routes/upload');
 const friendsRouter = require('./friends');
+const logisticsRouter = require('./logistics');
 
 const app = express();
 
@@ -58,6 +59,12 @@ app.use('/api/upload', uploadRouter);
 // ============================================================
 
 app.use('/api/friends', friendsRouter);
+
+// ============================================================
+// API — LOGISTICS
+// ============================================================
+
+app.use('/api/logistics', logisticsRouter);
 
 // ============================================================
 // HEALTH CHECK
