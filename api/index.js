@@ -6,12 +6,9 @@ const cors = require('cors');
 const supabase = require('../utils/supabase');
 const authRouter = require('../routes/auth');
 const uploadRouter = require('../routes/upload');
+const friendsRouter = require('./friends');
 
 const app = express();
-
-// ============================================================
-// CONFIGURACIÓN
-// ============================================================
 
 const PORT = process.env.PORT || 3000;
 
@@ -55,6 +52,12 @@ app.use('/api/auth', authRouter);
 // ============================================================
 
 app.use('/api/upload', uploadRouter);
+
+// ============================================================
+// API — FRIENDS
+// ============================================================
+
+app.use('/api/friends', friendsRouter);
 
 // ============================================================
 // HEALTH CHECK
