@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 
 const supabase = require('../utils/supabase');
+const authRouter = require('../routes/auth');
+const uploadRouter = require('../routes/upload');
 
 const app = express();
 
@@ -43,26 +45,16 @@ app.use(express.urlencoded({
 }));
 
 // ============================================================
-// AUTENTICACIÓN
+// API — AUTH
 // ============================================================
-
-const authRouter = require('../routes/auth');
 
 app.use('/api/auth', authRouter);
 
 // ============================================================
-// UPLOAD / CLOUDINARY
+// API — UPLOAD
 // ============================================================
 
-try {
-  const uploadRouter = require('../routes/upload');
-
-  app.use('/api/upload', uploadRouter);
-
-  console.log('✅ Upload cargado');
-} catch (error) {
-  console.log('⚠️ Upload no disponible:', error.message);
-}
+app.use('/api/upload', uploadRouter);
 
 // ============================================================
 // HEALTH CHECK
@@ -145,7 +137,8 @@ app.get('/', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    error: 'Ruta no encontrada'
+    error: 'Ruta no encontrada',
+    path: req.originalUrl
   });
 });
 
