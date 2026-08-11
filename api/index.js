@@ -48,13 +48,10 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Permitir requests sin Origin (health checks, herramientas,
-      // llamadas servidor-servidor, etc.)
       if (!origin) {
         return callback(null, true);
       }
 
-      // Desarrollo / compatibilidad inicial
       if (isWildcardOrigin) {
         return callback(null, true);
       }
@@ -88,60 +85,57 @@ app.use(
 );
 
 // ============================================================
-// RATE LIMITING
+// RATE LIMITING — GENERAL
 // ============================================================
 
-// Límite general.
-// Se mantiene deliberadamente moderado para no romper el MVP.
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: Number(process.env.RATE_LIMIT_MAX || 300),
+
+  limit: Number(
+    process.env.RATE_LIMIT_MAX || 300
+  ),
 
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 
   message: {
     success: false,
-    error: 'Demasiadas solicitudes. Intentá nuevamente más tarde.'
+    error:
+      'Demasiadas solicitudes. Intentá nuevamente más tarde.'
   },
 
-  skip: () => {
-    return process.env.NODE_ENV === 'test';
-  }
+  skip: () => NODE_ENV === 'test'
 });
 
 app.use(globalLimiter);
 
 // ============================================================
-// RATE LIMITING — AUTH
+// RATE LIMITING — AUTENTICACIÓN
 // ============================================================
 
-// Las rutas de autenticación necesitan un límite más estricto
-// para reducir intentos automatizados.
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: Number(process.env.AUTH_RATE_LIMIT_MAX || 30),
+
+  limit: Number(
+    process.env.AUTH_RATE_LIMIT_MAX || 30
+  ),
 
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 
   message: {
     success: false,
-    error: 'Demasiados intentos de autenticación. Intentá nuevamente más tarde.'
+    error:
+      'Demasiados intentos de autenticación. Intentá nuevamente más tarde.'
   },
 
-  skip: () => {
-    return process.env.NODE_ENV === 'test';
-  }
+  skip: () => NODE_ENV === 'test'
 });
 
 // ============================================================
 // BODY PARSING
 // ============================================================
 
-// JSON normal.
-// Los archivos no deberían viajar directamente como JSON.
-// Para eso utilizamos el sistema de upload existente.
 app.use(
   express.json({
     limit: process.env.JSON_BODY_LIMIT || '1mb'
@@ -159,25 +153,38 @@ app.use(
 // API — AUTH
 // ============================================================
 
-app.use('/api/auth', authLimiter, authRouter);
+app.use(
+  '/api/auth',
+  authLimiter,
+  authRouter
+);
 
 // ============================================================
 // API — UPLOAD
 // ============================================================
 
-app.use('/api/upload', uploadRouter);
+app.use(
+  '/api/upload',
+  uploadRouter
+);
 
 // ============================================================
 // API — FRIENDS
 // ============================================================
 
-app.use('/api/friends', friendsRouter);
+app.use(
+  '/api/friends',
+  friendsRouter
+);
 
 // ============================================================
 // API — LOGISTICS
 // ============================================================
 
-app.use('/api/logistics', logisticsRouter);
+app.use(
+  '/api/logistics',
+  logisticsRouter
+);
 
 // ============================================================
 // HEALTH CHECK
@@ -185,13 +192,17 @@ app.use('/api/logistics', logisticsRouter);
 
 app.get('/api/test', async (req, res) => {
   try {
-    const hasSupabaseUrl = Boolean(process.env.SUPABASE_URL);
-    const hasSupabaseKey = Boolean(process.env.SUPABASE_KEY);
+    const hasSupabaseUrl =
+      Boolean(process.env.SUPABASE_URL);
+
+    const hasSupabaseKey =
+      Boolean(process.env.SUPABASE_KEY);
 
     if (!hasSupabaseUrl || !hasSupabaseKey) {
       return res.status(500).json({
         success: false,
-        message: 'Faltan variables de entorno de Supabase',
+        message:
+          'Faltan variables de entorno de Supabase',
         supabase: 'Configuración incompleta',
         details: {
           hasUrl: hasSupabaseUrl,
@@ -210,7 +221,8 @@ app.get('/api/test', async (req, res) => {
 
       return res.status(503).json({
         success: false,
-        message: 'Error de conexión con Supabase',
+        message:
+          'Error de conexión con Supabase',
         supabase: 'Desconectado',
         error: {
           message: error.message,
@@ -235,9 +247,9 @@ app.get('/api/test', async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: 'Error verificando Supabase',
+      message:
+        'Error verificando Supabase',
       supabase: 'Error',
-
       error:
         NODE_ENV === 'production'
           ? 'Error interno del servidor'
@@ -277,25 +289,37 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('❌ Error:', err);
 
-  // Error específico de CORS
-  if (err.message === 'Origen no permitido por CORS') {
+  if (
+    err.message ===
+    'Origen no permitido por CORS'
+  ) {
     return res.status(403).json({
       success: false,
       error: 'Origen no permitido'
     });
   }
 
-  // Payload demasiado grande
   if (err.type === 'entity.too.large') {
     return res.status(413).json({
       success: false,
-      error: 'El contenido enviado es demasiado grande'
+      error:
+        'El contenido enviado es demasiado grande'
     });
   }
 
-  res.status(err.status || 500).json({
-    success: false,
+  if (
+    err instanceof SyntaxError &&
+    err.status === 400 &&
+    err.type === 'entity.parse.failed'
+  ) {
+    return res.status(400).json({
+      success: false,
+      error: 'JSON inválido'
+    });
+  }
 
+  return res.status(err.status || 500).json({
+    success: false,
     error:
       NODE_ENV === 'production'
         ? 'Error interno del servidor'
@@ -309,8 +333,13 @@ app.use((err, req, res, next) => {
 
 if (NODE_ENV !== 'production') {
   app.listen(PORT, () => {
-    console.log(`🚀 Pase y Mire API en puerto ${PORT}`);
-    console.log(`🌎 Entorno: ${NODE_ENV}`);
+    console.log(
+      `🚀 Pase y Mire API en puerto ${PORT}`
+    );
+
+    console.log(
+      `🌎 Entorno: ${NODE_ENV}`
+    );
   });
 }
 
