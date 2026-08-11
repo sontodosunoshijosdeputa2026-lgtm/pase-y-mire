@@ -619,7 +619,6 @@ async function createOffer(
 
   return offer;
 }
-
 // ============================================================
 // LISTAR OFERTAS
 // ============================================================
@@ -940,8 +939,7 @@ async function acceptOffer(
   return Array.isArray(data)
     ? data[0]
     : data;
-}
-
+    }
 // ============================================================
 // OBTENER PRESTADOR DE OFERTA
 // ============================================================
@@ -1023,4 +1021,32 @@ async function withdrawOffer(
       'No se pudo retirar la oferta'
     );
 
-    rpcError.statusCode 
+    rpcError.statusCode =
+      error.code === 'P0001' ||
+      error.code === '23505'
+        ? 409
+        : 500;
+
+    throw rpcError;
+  }
+
+  return Array.isArray(data)
+    ? data[0]
+    : data;
+}
+// ============================================================
+// EXPORTS
+// ============================================================
+
+module.exports = {
+  getProviderByUserId,
+  requireProvider,
+  createServiceRequest,
+  getAvailableRequests,
+  getServiceRequest,
+  createOffer,
+  getOffers,
+  acceptOffer,
+  getOfferProviderId,
+  withdrawOffer
+};
