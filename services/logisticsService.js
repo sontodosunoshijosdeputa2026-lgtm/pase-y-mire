@@ -1009,6 +1009,13 @@ async function withdrawOffer(
     'withdraw_logistics_offer',
     {
       p_offer_id: offerId,
+        const {
+    data,
+    error
+  } = await supabase.rpc(
+    'withdraw_logistics_offer',
+    {
+      p_offer_id: offerId,
       p_provider_id: provider.id
     }
   );
@@ -1032,4 +1039,253 @@ async function withdrawOffer(
     : data;
 }
 
-// =============
+// ============================================================
+// ACTUALIZAR DISPONIBILIDAD DEL PRESTADOR
+// ============================================================
+
+async function updateProviderAvailability(
+  userId,
+  payload = {}
+) {
+  const provider =
+    await requireProvider(userId);
+
+  const availabilityStatus =
+    normalizeString(
+      payload.availabilityStatus,
+      50
+    );
+
+  if (
+    !PROVIDER_AVAILABILITY.includes(
+      availabilityStatus
+    )
+  ) {
+    throw createServiceError(
+      'El estado de disponibilidad no es válido',
+      400
+    );
+  }
+
+  const availabilityNote =
+    normalizeString(
+      payload.availabilityNote,
+      500
+    );
+
+  let availableAt = null;
+
+  if (
+    payload.availableAt !== undefined &&
+    payload.availableAt !== null &&
+    payload.availableAt !== ''
+  ) {
+    const date =
+      new Date(payload.availableAt);
+
+    if (Number.isNaN(date.getTime())) {
+      throw createServiceError(
+        'La fecha de disponibilidad no es válida',
+        400
+      );
+    }
+
+    availableAt =
+      date.toISOString();
+  }
+
+  if (
+    availabilityStatus === 'available_at' &&
+    !availableAt
+  ) {
+    throw createServiceError(
+      'Debés indicar cuándo estará disponible el prestador',
+      400
+    );
+  }
+
+  if (
+    availabilityStatus !== 'available_at'
+  ) {
+    availableAt = null;
+  }
+
+  const {
+    data,
+    error
+  } = await supabase
+    .from('logistics_providers')
+    .update({
+      availability_status:
+        availabilityStatus,
+      availability_note:
+        availabilityNote,
+      available_at:
+        availableAt,
+      updated_at:
+        new Date().toISOString()
+    })
+    .eq('id', provider.id)
+    .select(`
+      id,
+      user_id,
+      service_type,
+      verified,
+      active,
+      rating,
+      latitude,
+      longitude,
+      availability_status,
+      availability_note,
+      available_at,
+      created_at,
+      updated_at
+    `)
+    .single();
+
+  if (error) {
+    throw new Error(
+      `No se pudo actualizar la disponibilidad: ${error.message}`
+    );
+  }
+
+  return data;
+}
+
+// ============================================================
+// MIS SOLICITUDES
+// ============================================================
+
+async function getMyRequests(userId) {
+  const normalizedUserId =
+    normalizeUserId(userId);
+
+  if (!normalizedUserId) {
+    throw createServiceError(
+      'El identificador del usuario no es válido',
+      400
+    );
+  }
+
+  const {
+    data,
+    error
+  } = await supabase
+    .from('service_requests')
+    .select(`
+      id,
+      requester_id,
+      provider_id,
+      service_type,
+      origin,
+      destination,
+      origin_lat,
+      origin_lng,
+      destination_lat,
+      destination_lng,
+      price,
+      platform_fee,
+      status,
+      package_description,
+      package_weight,
+      package_dimensions,
+      requester_note,
+      requested_date,
+      accepted_at,
+      completed_at,
+      created_at,
+      updated_at
+    `)
+    .eq('requester_id', normalizedUserId)
+    .order('created_at', {
+      ascending: false
+    });
+
+  if (error) {
+    throw new Error(
+      `No se pudieron obtener tus solicitudes: ${error.message}`
+    );
+  }
+
+  return data || [];
+}
+
+// ============================================================
+// MIS OFERTAS
+// ============================================================
+
+async function getMyOffers(userId) {
+  const provider =
+    await requireProvider(userId);
+
+  const {
+    data,
+    error
+  } = await supabase
+    .from('logistics_offers')
+    .select(`
+      id,
+      request_id,
+      provider_id,
+      price,
+      message,
+      estimated_minutes,
+      status,
+      created_at,
+      updated_at,
+      service_requests (
+        id,
+        requester_id,
+        provider_id,
+        service_type,
+        origin,
+        destination,
+        origin_lat,
+        origin_lng,
+        destination_lat,
+        destination_lng,
+        price,
+        platform_fee,
+        status,
+        package_description,
+        package_weight,
+        package_dimensions,
+        requester_note,
+        requested_date,
+        accepted_at,
+        completed_at,
+        created_at,
+        updated_at
+      )
+    `)
+    .eq('provider_id', provider.id)
+    .order('created_at', {
+      ascending: false
+    });
+
+  if (error) {
+    throw new Error(
+      `No se pudieron obtener tus ofertas: ${error.message}`
+    );
+  }
+
+  return data || [];
+}
+
+// ============================================================
+// EXPORTS
+// ============================================================
+
+module.exports = {
+  createServiceRequest,
+  getAvailableRequests,
+  getServiceRequest,
+  createOffer,
+  getOffers,
+  acceptOffer,
+  withdrawOffer,
+  updateProviderAvailability,
+  getMyRequests,
+  getMyOffers,
+  getProviderByUserId
+};
