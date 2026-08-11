@@ -1,607 +1,280 @@
--- =========================================================
--- PASE Y MIRE
--- ESQUEMA PRINCIPAL SUPABASE
--- =========================================================
+-- ============================================================
+-- LOGISTICS EXTENSION
+-- ============================================================
 
-create extension if not exists pgcrypto;
+-- Campos adicionales del prestador
+alter table public.logistics_providers
+    add column if not exists availability_status text
+        not null default 'available';
+
+alter table public.logistics_providers
+    add column if not exists availability_note text
+        default '';
+
+alter table public.logistics_providers
+    add column if not exists available_at timestamptz;
 
 
--- =========================================================
--- USERS
--- =========================================================
+-- Campos adicionales de solicitudes logísticas
+alter table public.service_requests
+    add column if not exists package_description text
+        not null default '';
 
-create table if not exists public.users (
+alter table public.service_requests
+    add column if not exists package_weight numeric
+        not null default 0;
+
+alter table public.service_requests
+    add column if not exists package_dimensions text
+        not null default '';
+
+alter table public.service_requests
+    add column if not exists requester_note text
+        not null default '';
+
+alter table public.service_requests
+    add column if not exists requested_date timestamptz;
+
+alter table public.service_requests
+    add column if not exists accepted_at timestamptz;
+
+alter table public.service_requests
+    add column if not exists completed_at timestamptz;
+
+
+-- ============================================================
+-- LOGISTICS OFFERS
+-- ============================================================
+
+create table if not exists public.logistics_offers (
     id uuid primary key default gen_random_uuid(),
 
-    name text not null,
-
-    email text not null unique,
-
-    password text not null,
-
-    phone text default '',
-
-    id_number text default '',
-
-    avatar text,
-
-    verified boolean not null default false,
-
-    logistics_provider boolean not null default false,
-
-    provider_service text,
-
-    provider_verified boolean not null default false,
-
-    provider_paid boolean not null default false,
-
-    rating numeric(3,2) not null default 5.00,
-
-    posts integer not null default 0,
-
-    sales integer not null default 0,
-
-    created_at timestamptz not null default now(),
-
-    updated_at timestamptz not null default now(),
-
-    constraint users_rating_check
-        check (rating >= 0 and rating <= 5)
-);
-
-
--- =========================================================
--- PRODUCTS
--- =========================================================
-
-create table if not exists public.products (
-    id uuid primary key default gen_random_uuid(),
-
-    seller_id uuid not null
-        references public.users(id)
+    request_id uuid not null
+        references public.service_requests(id)
         on delete cascade,
 
-    title text not null,
-
-    description text not null default '',
+    provider_id uuid not null
+        references public.logistics_providers(id)
+        on delete cascade,
 
     price numeric(14,2) not null,
 
-    category text not null default 'otros',
+    message text not null default '',
 
-    condition text not null default 'usado',
-
-    images jsonb not null default '[]'::jsonb,
-
-    reels jsonb not null default '[]'::jsonb,
-
-    city text,
-
-    province text,
-
-    latitude numeric,
-
-    longitude numeric,
-
-    status text not null default 'activo',
-
-    views integer not null default 0,
-
-    created_at timestamptz not null default now(),
-
-    updated_at timestamptz not null default now(),
-
-    constraint products_price_check
-        check (price >= 0)
-);
-
-
--- =========================================================
--- PRODUCT LIKES
--- =========================================================
-
-create table if not exists public.product_likes (
-    product_id uuid not null
-        references public.products(id)
-        on delete cascade,
-
-    user_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    created_at timestamptz not null default now(),
-
-    primary key (product_id, user_id)
-);
-
-
--- =========================================================
--- ORDERS
--- =========================================================
-
-create table if not exists public.orders (
-    id uuid primary key default gen_random_uuid(),
-
-    buyer_id uuid not null
-        references public.users(id),
-
-    seller_id uuid not null
-        references public.users(id),
-
-    product_id uuid
-        references public.products(id),
-
-    amount numeric(14,2) not null,
-
-    platform_fee numeric(14,2) not null default 0,
+    estimated_minutes integer,
 
     status text not null default 'pending',
 
-    payment_id text,
-
-    payment_status text default 'pending',
-
-    shipping_status text default 'pending',
-
     created_at timestamptz not null default now(),
 
     updated_at timestamptz not null default now(),
 
-    constraint orders_amount_check
-        check (amount >= 0),
+    constraint logistics_offers_price_check
+        check (price > 0),
 
-    constraint orders_platform_fee_check
-        check (platform_fee >= 0)
+    constraint logistics_offers_estimated_minutes_check
+        check (
+            estimated_minutes is null
+            or estimated_minutes > 0
+        ),
+
+    constraint logistics_offers_status_check
+        check (
+            status in (
+                'pending',
+                'accepted',
+                'rejected',
+                'withdrawn'
+            )
+        ),
+
+    constraint logistics_offers_unique_provider_request
+        unique (request_id, provider_id)
 );
 
 
--- =========================================================
--- WALLETS
--- =========================================================
+-- ============================================================
+-- ÍNDICES LOGÍSTICOS
+-- ============================================================
 
-create table if not exists public.wallets (
-    id uuid primary key default gen_random_uuid(),
+create index if not exists
+    idx_logistics_providers_service_type
+    on public.logistics_providers(service_type);
 
-    user_id uuid not null unique
-        references public.users(id)
-        on delete cascade,
+create index if not exists
+    idx_logistics_providers_active
+    on public.logistics_providers(active);
 
-    balance numeric(14,2) not null default 0,
+create index if not exists
+    idx_logistics_providers_availability
+    on public.logistics_providers(availability_status);
 
-    card_number text unique,
+create index if not exists
+    idx_service_requests_status
+    on public.service_requests(status);
 
-    card_last4 text,
+create index if not exists
+    idx_service_requests_service_type
+    on public.service_requests(service_type);
 
-    card_holder text,
+create index if not exists
+    idx_service_requests_requested_date
+    on public.service_requests(requested_date);
 
-    card_expiry text,
+create index if not exists
+    idx_logistics_offers_request
+    on public.logistics_offers(request_id);
 
-    card_active boolean not null default true,
+create index if not exists
+    idx_logistics_offers_provider
+    on public.logistics_offers(provider_id);
 
-    qr_token text unique,
+create index if not exists
+    idx_logistics_offers_status
+    on public.logistics_offers(status);
 
-    created_at timestamptz not null default now(),
+create index if not exists
+    idx_logistics_offers_created
+    on public.logistics_offers(created_at desc);
 
-    updated_at timestamptz not null default now(),
 
-    constraint wallets_balance_check
-        check (balance >= 0)
-);
+-- ============================================================
+-- TRIGGER UPDATED_AT — OFFERS
+-- ============================================================
 
+drop trigger if exists logistics_offers_updated_at
+on public.logistics_offers;
 
--- =========================================================
--- TRANSACTIONS
--- =========================================================
-
-create table if not exists public.transactions (
-    id uuid primary key default gen_random_uuid(),
-
-    user_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    type text not null,
-
-    amount numeric(14,2) not null,
-
-    currency text not null default 'ARS',
-
-    status text not null default 'pending',
-
-    reference_type text,
-
-    reference_id uuid,
-
-    description text,
-
-    created_at timestamptz not null default now()
-);
-
-
--- =========================================================
--- LOGISTICS PROVIDERS
--- =========================================================
-
-create table if not exists public.logistics_providers (
-    id uuid primary key default gen_random_uuid(),
-
-    user_id uuid not null unique
-        references public.users(id)
-        on delete cascade,
-
-    service_type text not null,
-
-    verified boolean not null default false,
-
-    active boolean not null default false,
-
-    rating numeric(3,2) not null default 5.00,
-
-    latitude numeric,
-
-    longitude numeric,
-
-    created_at timestamptz not null default now(),
-
-    updated_at timestamptz not null default now(),
-
-    constraint logistics_rating_check
-        check (rating >= 0 and rating <= 5)
-);
-
-
--- =========================================================
--- SERVICE REQUESTS
--- =========================================================
-
-create table if not exists public.service_requests (
-    id uuid primary key default gen_random_uuid(),
-
-    requester_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    provider_id uuid
-        references public.logistics_providers(id),
-
-    service_type text not null,
-
-    origin text,
-
-    destination text,
-
-    origin_lat numeric,
-
-    origin_lng numeric,
-
-    destination_lat numeric,
-
-    destination_lng numeric,
-
-    price numeric(14,2) not null default 0,
-
-    platform_fee numeric(14,2) not null default 0,
-
-    status text not null default 'pending',
-
-    created_at timestamptz not null default now(),
-
-    updated_at timestamptz not null default now(),
-
-    constraint service_requests_price_check
-        check (price >= 0)
-);
-
-
--- =========================================================
--- CONVERSATIONS
--- =========================================================
-
-create table if not exists public.conversations (
-    id uuid primary key default gen_random_uuid(),
-
-    created_at timestamptz not null default now()
-);
-
-
--- =========================================================
--- CONVERSATION MEMBERS
--- =========================================================
-
-create table if not exists public.conversation_members (
-    conversation_id uuid not null
-        references public.conversations(id)
-        on delete cascade,
-
-    user_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    created_at timestamptz not null default now(),
-
-    primary key (conversation_id, user_id)
-);
-
-
--- =========================================================
--- MESSAGES
--- =========================================================
-
-create table if not exists public.messages (
-    id uuid primary key default gen_random_uuid(),
-
-    conversation_id uuid not null
-        references public.conversations(id)
-        on delete cascade,
-
-    sender_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    body text not null,
-
-    read_at timestamptz,
-
-    created_at timestamptz not null default now()
-);
-
-
--- =========================================================
--- NOTIFICATIONS
--- =========================================================
-
-create table if not exists public.notifications (
-    id uuid primary key default gen_random_uuid(),
-
-    user_id uuid not null
-        references public.users(id)
-        on delete cascade,
-
-    type text,
-
-    title text,
-
-    body text,
-
-    data jsonb not null default '{}'::jsonb,
-
-    read boolean not null default false,
-
-    created_at timestamptz not null default now()
-);
-
-
--- =========================================================
--- ADVERTISEMENTS
--- =========================================================
-
-create table if not exists public.advertisements (
-    id uuid primary key default gen_random_uuid(),
-
-    owner_id uuid
-        references public.users(id)
-        on delete set null,
-
-    title text not null,
-
-    image_url text,
-
-    target_url text not null,
-
-    impressions_limit integer not null default 1000,
-
-    impressions integer not null default 0,
-
-    price numeric(14,2) not null default 0,
-
-    status text not null default 'pending',
-
-    created_at timestamptz not null default now(),
-
-    updated_at timestamptz not null default now()
-);
-
-
--- =========================================================
--- ÍNDICES
--- =========================================================
-
-create index if not exists idx_users_email
-    on public.users(email);
-
-create index if not exists idx_products_seller
-    on public.products(seller_id);
-
-create index if not exists idx_products_category
-    on public.products(category);
-
-create index if not exists idx_products_status
-    on public.products(status);
-
-create index if not exists idx_products_created
-    on public.products(created_at desc);
-
-create index if not exists idx_product_likes_user
-    on public.product_likes(user_id);
-
-create index if not exists idx_orders_buyer
-    on public.orders(buyer_id);
-
-create index if not exists idx_orders_seller
-    on public.orders(seller_id);
-
-create index if not exists idx_orders_product
-    on public.orders(product_id);
-
-create index if not exists idx_transactions_user
-    on public.transactions(user_id);
-
-create index if not exists idx_transactions_created
-    on public.transactions(created_at desc);
-
-create index if not exists idx_service_requests_requester
-    on public.service_requests(requester_id);
-
-create index if not exists idx_service_requests_provider
-    on public.service_requests(provider_id);
-
-create index if not exists idx_messages_conversation
-    on public.messages(conversation_id);
-
-create index if not exists idx_messages_created
-    on public.messages(created_at);
-
-create index if not exists idx_notifications_user
-    on public.notifications(user_id);
-
-create index if not exists idx_notifications_unread
-    on public.notifications(user_id, read);
-
-
--- =========================================================
--- UPDATED_AT
--- =========================================================
-
-create or replace function public.set_updated_at()
-returns trigger
-language plpgsql
-as $$
-begin
-    new.updated_at = now();
-    return new;
-end;
-$$;
-
-
-drop trigger if exists users_updated_at
-on public.users;
-
-create trigger users_updated_at
-before update on public.users
+create trigger logistics_offers_updated_at
+before update on public.logistics_offers
 for each row
 execute function public.set_updated_at();
 
 
-drop trigger if exists products_updated_at
-on public.products;
+-- ============================================================
+-- RPC: ACCEPT LOGISTICS OFFER
+-- ============================================================
 
-create trigger products_updated_at
-before update on public.products
-for each row
-execute function public.set_updated_at();
-
-
-drop trigger if exists orders_updated_at
-on public.orders;
-
-create trigger orders_updated_at
-before update on public.orders
-for each row
-execute function public.set_updated_at();
-
-
-drop trigger if exists wallets_updated_at
-on public.wallets;
-
-create trigger wallets_updated_at
-before update on public.wallets
-for each row
-execute function public.set_updated_at();
-
-
-drop trigger if exists logistics_providers_updated_at
-on public.logistics_providers;
-
-create trigger logistics_providers_updated_at
-before update on public.logistics_providers
-for each row
-execute function public.set_updated_at();
-
-
-drop trigger if exists service_requests_updated_at
-on public.service_requests;
-
-create trigger service_requests_updated_at
-before update on public.service_requests
-for each row
-execute function public.set_updated_at();
-
-
-drop trigger if exists advertisements_updated_at
-on public.advertisements;
-
-create trigger advertisements_updated_at
-before update on public.advertisements
-for each row
-execute function public.set_updated_at();
-
-
--- =========================================================
--- FUNCIÓN PARA CREAR WALLET AUTOMÁTICAMENTE
--- =========================================================
-
-create or replace function public.create_wallet_for_user()
-returns trigger
+create or replace function public.accept_logistics_offer(
+    p_request_id uuid,
+    p_offer_id uuid,
+    p_provider_id uuid
+)
+returns public.logistics_offers
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+    selected_offer public.logistics_offers;
 begin
 
-    insert into public.wallets (
-        user_id,
-        balance,
-        card_holder
-    )
-    values (
-        new.id,
-        0,
-        new.name
-    )
-    on conflict (user_id) do nothing;
+    select *
+    into selected_offer
+    from public.logistics_offers
+    where id = p_offer_id
+      and request_id = p_request_id
+      and provider_id = p_provider_id
+      and status = 'pending'
+    for update;
 
-    return new;
+    if not found then
+        raise exception
+            using
+                errcode = 'P0001',
+                message = 'La oferta ya no está disponible';
+    end if;
 
+
+    update public.service_requests
+    set
+        provider_id = p_provider_id,
+        price = selected_offer.price,
+        status = 'accepted',
+        accepted_at = now(),
+        updated_at = now()
+    where id = p_request_id
+      and status in ('pending', 'open')
+      and provider_id is null;
+
+    if not found then
+        raise exception
+            using
+                errcode = 'P0001',
+                message = 'La solicitud ya no está disponible';
+    end if;
+
+
+    update public.logistics_offers
+    set
+        status = 'accepted',
+        updated_at = now()
+    where id = p_offer_id
+    returning *
+    into selected_offer;
+
+
+    update public.logistics_offers
+    set
+        status = 'rejected',
+        updated_at = now()
+    where request_id = p_request_id
+      and id <> p_offer_id
+      and status = 'pending';
+
+
+    return selected_offer;
 end;
 $$;
 
 
-drop trigger if exists create_wallet_after_user
-on public.users;
+-- ============================================================
+-- RPC: WITHDRAW LOGISTICS OFFER
+-- ============================================================
 
-create trigger create_wallet_after_user
-after insert on public.users
-for each row
-execute function public.create_wallet_for_user();
+create or replace function public.withdraw_logistics_offer(
+    p_offer_id uuid,
+    p_provider_id uuid
+)
+returns public.logistics_offers
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    selected_offer public.logistics_offers;
+begin
+
+    update public.logistics_offers
+    set
+        status = 'withdrawn',
+        updated_at = now()
+    where id = p_offer_id
+      and provider_id = p_provider_id
+      and status = 'pending'
+    returning *
+    into selected_offer;
+
+    if not found then
+        raise exception
+            using
+                errcode = 'P0001',
+                message = 'La oferta no puede ser retirada';
+    end if;
+
+    return selected_offer;
+end;
+$$;
 
 
--- =========================================================
--- SEGURIDAD
--- =========================================================
---
--- El backend utiliza SUPABASE_KEY desde el servidor.
--- Esa variable debe contener la clave server-side
--- correspondiente al proyecto Supabase.
---
--- Activamos RLS para evitar acceso público directo.
--- El service_role de Supabase bypassa RLS.
---
+-- ============================================================
+-- RLS
+-- ============================================================
 
-alter table public.users enable row level security;
-alter table public.products enable row level security;
-alter table public.product_likes enable row level security;
-alter table public.orders enable row level security;
-alter table public.wallets enable row level security;
-alter table public.transactions enable row level security;
-alter table public.logistics_providers enable row level security;
-alter table public.service_requests enable row level security;
-alter table public.conversations enable row level security;
-alter table public.conversation_members enable row level security;
-alter table public.messages enable row level security;
-alter table public.notifications enable row level security;
-alter table public.advertisements enable row level security;
+alter table public.logistics_offers
+enable row level security;
 
 
--- =========================================================
--- FIN
--- =========================================================
+-- ============================================================
+-- FIN EXTENSIÓN LOGÍSTICA
+-- ============================================================
