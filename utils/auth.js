@@ -9,6 +9,13 @@ if (!JWT_SECRET) {
 
 async function authMiddleware(req, res, next) {
   try {
+    if (!JWT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        error: 'Configuración de autenticación incompleta'
+      });
+    }
+
     const header = req.headers.authorization;
 
     if (!header || !header.startsWith('Bearer ')) {
@@ -18,17 +25,42 @@ async function authMiddleware(req, res, next) {
       });
     }
 
-    const token = header.substring(7);
+    const token = header.substring(7).trim();
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token de autenticación requerido'
+      });
+    }
 
     const decoded = jwt.verify(token, JWT_SECRET);
 
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token inválido'
+      });
+    }
+
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
+      .select(
+        'id,name,email,phone,id_number,avatar,verified,rating,posts,sales'
+      )
       .eq('id', decoded.id)
-      .single();
+      .maybeSingle();
 
-    if (error || !user) {
+    if (error) {
+      console.error('❌ Error verificando usuario:', error);
+
+      return res.status(500).json({
+        success: false,
+        error: 'Error verificando autenticación'
+      });
+    }
+
+    if (!user) {
       return res.status(401).json({
         success: false,
         error: 'Usuario no encontrado'
@@ -39,6 +71,22 @@ async function authMiddleware(req, res, next) {
 
     next();
   } catch (error) {
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        error: 'Sesión expirada'
+      });
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        error: 'Token inválido'
+      });
+    }
+
+    console.error('❌ Error en autenticación:', error);
+
     return res.status(401).json({
       success: false,
       error: 'Sesión inválida o expirada'
@@ -47,6 +95,14 @@ async function authMiddleware(req, res, next) {
 }
 
 function createToken(user) {
+  if (!JWT_SECRET) {
+    throw new Error('JWT_SECRET no configurado');
+  }
+
+  if (!user || !user.id) {
+    throw new Error('Usuario inválido para generar token');
+  }
+
   return jwt.sign(
     {
       id: user.id,
@@ -54,7 +110,7 @@ function createToken(user) {
     },
     JWT_SECRET,
     {
-      expiresIn: '7d'
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
     }
   );
 }
