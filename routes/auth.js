@@ -68,15 +68,20 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Verificar usuario existente
-    const { data: existingUser, error: searchError } = await supabase
+    const {
+      data: existingUser,
+      error: searchError
+    } = await supabase
       .from('users')
       .select('id')
       .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (searchError) {
-      console.error('Error buscando usuario:', searchError);
+      console.error(
+        'Error buscando usuario:',
+        searchError
+      );
 
       return res.status(500).json({
         success: false,
@@ -96,7 +101,10 @@ router.post('/register', async (req, res) => {
       Number(process.env.BCRYPT_ROUNDS || 12)
     );
 
-    const { data: user, error: insertError } = await supabase
+    const {
+      data: user,
+      error: insertError
+    } = await supabase
       .from('users')
       .insert({
         name: normalizedName,
@@ -119,7 +127,10 @@ router.post('/register', async (req, res) => {
       .single();
 
     if (insertError) {
-      console.error('Error creando usuario:', insertError);
+      console.error(
+        'Error creando usuario:',
+        insertError
+      );
 
       return res.status(500).json({
         success: false,
@@ -172,15 +183,20 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Traemos únicamente los campos necesarios para autenticar.
-    const { data: user, error } = await supabase
+    const {
+      data: user,
+      error
+    } = await supabase
       .from('users')
       .select(USER_AUTH_FIELDS)
       .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (error) {
-      console.error('Error buscando usuario:', error);
+      console.error(
+        'Error buscando usuario:',
+        error
+      );
 
       return res.status(500).json({
         success: false,
@@ -242,12 +258,16 @@ router.post('/login', async (req, res) => {
 // VERIFICAR SESIÓN
 // ============================================================
 
-router.get('/verify', authMiddleware, async (req, res) => {
-  return res.json({
-    success: true,
-    user: req.user
-  });
-});
+router.get(
+  '/verify',
+  authMiddleware,
+  async (req, res) => {
+    return res.json({
+      success: true,
+      user: req.user
+    });
+  }
+);
 
 // ============================================================
 // EXPORT
