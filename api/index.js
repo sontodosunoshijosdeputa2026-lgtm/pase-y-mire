@@ -9,23 +9,34 @@ const supabase = require('../utils/supabase');
 const authRouter = require('../routes/auth');
 const uploadRouter = require('../routes/upload');
 const friendsRouter = require('./friends');
-const logisticsRouter = require('./logistics');
+
+const logisticsModule = require('./logistics');
+
+const logisticsRouter =
+  logisticsModule?.default ||
+  logisticsModule?.router ||
+  logisticsModule;
 
 const app = express();
 
-const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT =
+  process.env.PORT || 3000;
+
+const NODE_ENV =
+  process.env.NODE_ENV || 'development';
 
 // ============================================================
 // CONFIGURACIÓN
 // ============================================================
 
-const allowedOrigins = (process.env.CORS_ORIGINS || '*')
-  .split(',')
-  .map(origin => origin.trim())
-  .filter(Boolean);
+const allowedOrigins =
+  (process.env.CORS_ORIGINS || '*')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
 
-const isWildcardOrigin = allowedOrigins.includes('*');
+const isWildcardOrigin =
+  allowedOrigins.includes('*');
 
 // ============================================================
 // SEGURIDAD
@@ -60,7 +71,11 @@ app.use(
         return callback(null, true);
       }
 
-      return callback(new Error('Origen no permitido por CORS'));
+      return callback(
+        new Error(
+          'Origen no permitido por CORS'
+        )
+      );
     },
 
     methods: [
@@ -88,24 +103,28 @@ app.use(
 // RATE LIMITING — GENERAL
 // ============================================================
 
-const globalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+const globalLimiter =
+  rateLimit({
+    windowMs:
+      15 * 60 * 1000,
 
-  limit: Number(
-    process.env.RATE_LIMIT_MAX || 300
-  ),
+    limit: Number(
+      process.env.RATE_LIMIT_MAX || 300
+    ),
 
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
+    standardHeaders: 'draft-7',
 
-  message: {
-    success: false,
-    error:
-      'Demasiadas solicitudes. Intentá nuevamente más tarde.'
-  },
+    legacyHeaders: false,
 
-  skip: () => NODE_ENV === 'test'
-});
+    message: {
+      success: false,
+      error:
+        'Demasiadas solicitudes. Intentá nuevamente más tarde.'
+    },
+
+    skip: () =>
+      NODE_ENV === 'test'
+  });
 
 app.use(globalLimiter);
 
@@ -113,24 +132,28 @@ app.use(globalLimiter);
 // RATE LIMITING — AUTENTICACIÓN
 // ============================================================
 
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+const authLimiter =
+  rateLimit({
+    windowMs:
+      15 * 60 * 1000,
 
-  limit: Number(
-    process.env.AUTH_RATE_LIMIT_MAX || 30
-  ),
+    limit: Number(
+      process.env.AUTH_RATE_LIMIT_MAX || 30
+    ),
 
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
+    standardHeaders: 'draft-7',
 
-  message: {
-    success: false,
-    error:
-      'Demasiados intentos de autenticación. Intentá nuevamente más tarde.'
-  },
+    legacyHeaders: false,
 
-  skip: () => NODE_ENV === 'test'
-});
+    message: {
+      success: false,
+      error:
+        'Demasiados intentos de autenticación. Intentá nuevamente más tarde.'
+    },
+
+    skip: () =>
+      NODE_ENV === 'test'
+  });
 
 // ============================================================
 // BODY PARSING
@@ -138,14 +161,19 @@ const authLimiter = rateLimit({
 
 app.use(
   express.json({
-    limit: process.env.JSON_BODY_LIMIT || '1mb'
+    limit:
+      process.env.JSON_BODY_LIMIT ||
+      '1mb'
   })
 );
 
 app.use(
   express.urlencoded({
     extended: true,
-    limit: process.env.URLENCODED_BODY_LIMIT || '1mb'
+
+    limit:
+      process.env.URLENCODED_BODY_LIMIT ||
+      '1mb'
   })
 );
 
@@ -190,157 +218,250 @@ app.use(
 // HEALTH CHECK
 // ============================================================
 
-app.get('/api/test', async (req, res) => {
-  try {
-    const hasSupabaseUrl =
-      Boolean(process.env.SUPABASE_URL);
+app.get(
+  '/api/test',
+  async (req, res) => {
+    try {
+      const hasSupabaseUrl =
+        Boolean(
+          process.env.SUPABASE_URL
+        );
 
-    const hasSupabaseKey =
-      Boolean(process.env.SUPABASE_KEY);
+      const hasSupabaseKey =
+        Boolean(
+          process.env.SUPABASE_KEY
+        );
 
-    if (!hasSupabaseUrl || !hasSupabaseKey) {
+      if (
+        !hasSupabaseUrl ||
+        !hasSupabaseKey
+      ) {
+        return res.status(500).json({
+          success: false,
+
+          message:
+            'Faltan variables de entorno de Supabase',
+
+          supabase:
+            'Configuración incompleta',
+
+          details: {
+            hasUrl:
+              hasSupabaseUrl,
+
+            hasKey:
+              hasSupabaseKey
+          }
+        });
+      }
+
+      const { error } =
+        await supabase
+          .from('users')
+          .select('id')
+          .limit(1);
+
+      if (error) {
+        console.error(
+          '❌ Supabase:',
+          error
+        );
+
+        return res.status(503).json({
+          success: false,
+
+          message:
+            'Error de conexión con Supabase',
+
+          supabase:
+            'Desconectado',
+
+          error: {
+            message:
+              error.message,
+
+            code:
+              error.code || '',
+
+            details:
+              error.details || '',
+
+            hint:
+              error.hint || ''
+          }
+        });
+      }
+
+      return res.json({
+        success: true,
+
+        message:
+          'API Pase y Mire funcionando',
+
+        supabase:
+          'Conectado',
+
+        database:
+          'Supabase',
+
+        environment:
+          NODE_ENV,
+
+        timestamp:
+          new Date().toISOString()
+      });
+
+    } catch (error) {
+      console.error(
+        '❌ Health check:',
+        error
+      );
+
       return res.status(500).json({
         success: false,
+
         message:
-          'Faltan variables de entorno de Supabase',
-        supabase: 'Configuración incompleta',
-        details: {
-          hasUrl: hasSupabaseUrl,
-          hasKey: hasSupabaseKey
-        }
+          'Error verificando Supabase',
+
+        supabase:
+          'Error',
+
+        error:
+          NODE_ENV === 'production'
+            ? 'Error interno del servidor'
+            : error.message
       });
     }
-
-    const { error } = await supabase
-      .from('users')
-      .select('id')
-      .limit(1);
-
-    if (error) {
-      console.error('❌ Supabase:', error);
-
-      return res.status(503).json({
-        success: false,
-        message:
-          'Error de conexión con Supabase',
-        supabase: 'Desconectado',
-        error: {
-          message: error.message,
-          code: error.code || '',
-          details: error.details || '',
-          hint: error.hint || ''
-        }
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: 'API Pase y Mire funcionando',
-      supabase: 'Conectado',
-      database: 'Supabase',
-      environment: NODE_ENV,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (error) {
-    console.error('❌ Health check:', error);
-
-    return res.status(500).json({
-      success: false,
-      message:
-        'Error verificando Supabase',
-      supabase: 'Error',
-      error:
-        NODE_ENV === 'production'
-          ? 'Error interno del servidor'
-          : error.message
-    });
   }
-});
+);
 
 // ============================================================
 // RUTA PRINCIPAL
 // ============================================================
 
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Pase y Mire API',
-    status: 'online'
-  });
-});
+app.get(
+  '/',
+  (req, res) => {
+    res.json({
+      success: true,
+
+      message:
+        'Pase y Mire API',
+
+      status:
+        'online'
+    });
+  }
+);
 
 // ============================================================
 // 404
 // ============================================================
 
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Ruta no encontrada',
-    path: req.originalUrl
-  });
-});
+app.use(
+  (req, res) => {
+    res.status(404).json({
+      success: false,
+
+      error:
+        'Ruta no encontrada',
+
+      path:
+        req.originalUrl
+    });
+  }
+);
 
 // ============================================================
 // MANEJO DE ERRORES
 // ============================================================
 
-app.use((err, req, res, next) => {
-  console.error('❌ Error:', err);
+app.use(
+  (
+    err,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      '❌ Error:',
+      err
+    );
 
-  if (
-    err.message ===
-    'Origen no permitido por CORS'
-  ) {
-    return res.status(403).json({
-      success: false,
-      error: 'Origen no permitido'
-    });
-  }
+    if (
+      err.message ===
+      'Origen no permitido por CORS'
+    ) {
+      return res.status(403).json({
+        success: false,
 
-  if (err.type === 'entity.too.large') {
-    return res.status(413).json({
+        error:
+          'Origen no permitido'
+      });
+    }
+
+    if (
+      err.type ===
+      'entity.too.large'
+    ) {
+      return res.status(413).json({
+        success: false,
+
+        error:
+          'El contenido enviado es demasiado grande'
+      });
+    }
+
+    if (
+      err instanceof SyntaxError &&
+      err.status === 400 &&
+      err.type ===
+        'entity.parse.failed'
+    ) {
+      return res.status(400).json({
+        success: false,
+
+        error:
+          'JSON inválido'
+      });
+    }
+
+    return res.status(
+      err.status || 500
+    ).json({
       success: false,
+
       error:
-        'El contenido enviado es demasiado grande'
+        NODE_ENV === 'production'
+          ? 'Error interno del servidor'
+          : err.message
     });
   }
-
-  if (
-    err instanceof SyntaxError &&
-    err.status === 400 &&
-    err.type === 'entity.parse.failed'
-  ) {
-    return res.status(400).json({
-      success: false,
-      error: 'JSON inválido'
-    });
-  }
-
-  return res.status(err.status || 500).json({
-    success: false,
-    error:
-      NODE_ENV === 'production'
-        ? 'Error interno del servidor'
-        : err.message
-  });
-});
+);
 
 // ============================================================
 // SERVIDOR LOCAL
 // ============================================================
 
-if (NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(
-      `🚀 Pase y Mire API en puerto ${PORT}`
-    );
+if (
+  NODE_ENV !== 'production'
+) {
+  app.listen(
+    PORT,
+    () => {
+      console.log(
+        `🚀 Pase y Mire API en puerto ${PORT}`
+      );
 
-    console.log(
-      `🌎 Entorno: ${NODE_ENV}`
-    );
-  });
+      console.log(
+        `🌎 Entorno: ${NODE_ENV}`
+      );
+    }
+  );
 }
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = app;
