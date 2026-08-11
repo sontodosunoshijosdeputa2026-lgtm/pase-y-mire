@@ -8,6 +8,26 @@ const { createToken, authMiddleware } = require('../utils/auth');
 
 const router = express.Router();
 
+const USER_PUBLIC_FIELDS =
+  'id,name,email,phone,id_number,avatar,verified,rating,posts,sales';
+
+const USER_AUTH_FIELDS =
+  'id,name,email,phone,id_number,avatar,verified,rating,posts,sales,password';
+
+// ============================================================
+// VALIDACIÓN
+// ============================================================
+
+function normalizeEmail(email) {
+  return typeof email === 'string'
+    ? email.trim().toLowerCase()
+    : '';
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 // ============================================================
 // REGISTRO
 // ============================================================
@@ -20,23 +40,33 @@ router.post('/register', async (req, res) => {
       password,
       phone,
       idNumber
-    } = req.body;
+    } = req.body || {};
 
-    if (!name || !email || !password) {
+    const normalizedName =
+      typeof name === 'string' ? name.trim() : '';
+
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedName || !normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         error: 'Nombre, email y contraseña son obligatorios'
       });
     }
 
-    if (password.length < 6) {
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El email no es válido'
+      });
+    }
+
+    if (typeof password !== 'string' || password.length < 6) {
       return res.status(400).json({
         success: false,
         error: 'La contraseña debe tener al menos 6 caracteres'
       });
     }
-
-    const normalizedEmail = email.trim().toLowerCase();
 
     // Verificar usuario existente
     const { data: existingUser, error: searchError } = await supabase
@@ -61,22 +91,31 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(
+      password,
+      Number(process.env.BCRYPT_ROUNDS || 12)
+    );
 
     const { data: user, error: insertError } = await supabase
       .from('users')
       .insert({
-        name: name.trim(),
+        name: normalizedName,
         email: normalizedEmail,
         password: hashedPassword,
-        phone: phone || '',
-        id_number: idNumber || '',
+        phone:
+          typeof phone === 'string'
+            ? phone.trim()
+            : '',
+        id_number:
+          typeof idNumber === 'string'
+            ? idNumber.trim()
+            : '',
         verified: false,
         rating: 5,
         posts: 0,
         sales: 0
       })
-      .select('id,name,email,phone,id_number,avatar,verified,rating,posts,sales')
+      .select(USER_PUBLIC_FIELDS)
       .single();
 
     if (insertError) {
@@ -115,20 +154,28 @@ router.post('/login', async (req, res) => {
     const {
       email,
       password
-    } = req.body;
+    } = req.body || {};
 
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         error: 'Email y contraseña son obligatorios'
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    if (!isValidEmail(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        error: 'El email no es válido'
+      });
+    }
 
+    // Traemos únicamente los campos necesarios para autenticar.
     const { data: user, error } = await supabase
       .from('users')
-      .select('*')
+      .select(USER_AUTH_FIELDS)
       .eq('email', normalizedEmail)
       .maybeSingle();
 
@@ -141,7 +188,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    if (!user) {
+    if (!user || !user.password) {
       return res.status(401).json({
         success: false,
         error: 'Credenciales inválidas'
@@ -160,14 +207,25 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const token = createToken(user);
+    const publicUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      id_number: user.id_number,
+      avatar: user.avatar,
+      verified: user.verified,
+      rating: user.rating,
+      posts: user.posts,
+      sales: user.sales
+    };
 
-    delete user.password;
+    const token = createToken(publicUser);
 
     return res.json({
       success: true,
       token,
-      user
+      user: publicUser
     });
 
   } catch (error) {
@@ -190,5 +248,9 @@ router.get('/verify', authMiddleware, async (req, res) => {
     user: req.user
   });
 });
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = router;
