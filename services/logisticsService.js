@@ -1,12 +1,18 @@
 const supabase = require('../utils/supabase');
 
 const OPEN_REQUEST_STATUSES = ['pending', 'open'];
-const OFFER_STATUSES = ['pending', 'accepted', 'rejected', 'withdrawn'];
+const OFFER_STATUSES = [
+  'pending',
+  'accepted',
+  'rejected',
+  'withdrawn'
+];
 
 const PROVIDER_AVAILABILITY = [
   'available',
   'in_trip',
-  'busy'
+  'busy',
+  'available_at'
 ];
 
 function normalizeString(value, maxLength = 500) {
@@ -18,7 +24,11 @@ function normalizeString(value, maxLength = 500) {
 }
 
 function parseOptionalNumber(value) {
-  if (value === undefined || value === null || value === '') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
     return null;
   }
 
@@ -38,7 +48,11 @@ function parsePositiveNumber(value) {
 }
 
 function parsePositiveInteger(value) {
-  if (value === undefined || value === null || value === '') {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ''
+  ) {
     return null;
   }
 
@@ -57,14 +71,22 @@ function createServiceError(message, statusCode = 500) {
   return error;
 }
 
+// ============================================================
+// IDENTIFICADOR DE USUARIO
+// ============================================================
+
 function normalizeUserId(userId) {
-  if (userId === undefined || userId === null || userId === '') {
+  if (
+    userId === undefined ||
+    userId === null ||
+    userId === ''
+  ) {
     return null;
   }
 
   const value = String(userId).trim();
 
-  if (!/^\d+$/.test(value)) {
+  if (!value) {
     return null;
   }
 
@@ -756,17 +778,19 @@ async function getOffers(
   let users = [];
 
   if (providerIds.length > 0) {
-    const { data: providerUsers, error: usersError } =
-      await supabase
-        .from('users')
-        .select(`
-          id,
-          name,
-          avatar,
-          verified,
-          rating
-        `)
-        .in('id', providerIds);
+    const {
+      data: providerUsers,
+      error: usersError
+    } = await supabase
+      .from('users')
+      .select(`
+        id,
+        name,
+        avatar,
+        verified,
+        rating
+      `)
+      .in('id', providerIds);
 
     if (usersError) {
       throw new Error(
@@ -976,17 +1000,4 @@ async function withdrawOffer(
 
     rpcError.statusCode =
       error.code === 'P0001'
-        ? 409
-        : 500;
-
-    throw rpcError;
-  }
-
-  return Array.isArray(data)
-    ? data[0]
-    : data;
-}
-
-// ============================================================
-// DISPONIBILIDAD DEL PRESTADOR
-// ==========
+        ? 4
