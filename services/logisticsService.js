@@ -1,6 +1,7 @@
 const supabase = require('../utils/supabase');
 
 const OPEN_REQUEST_STATUSES = ['pending', 'open'];
+
 const OFFER_STATUSES = [
   'pending',
   'accepted',
@@ -345,6 +346,8 @@ async function getAvailableRequests(userId) {
       package_dimensions,
       requester_note,
       requested_date,
+      accepted_at,
+      completed_at,
       created_at,
       updated_at
     `)
@@ -496,18 +499,20 @@ async function createOffer(
     );
   }
 
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        requester_id,
-        provider_id,
-        service_type,
-        status
-      `)
-      .eq('id', requestId)
-      .maybeSingle();
+  const {
+    data: request,
+    error: requestError
+  } = await supabase
+    .from('service_requests')
+    .select(`
+      id,
+      requester_id,
+      provider_id,
+      service_type,
+      status
+    `)
+    .eq('id', requestId)
+    .maybeSingle();
 
   if (requestError) {
     throw new Error(
@@ -573,29 +578,31 @@ async function createOffer(
   const message =
     normalizeString(payload.message, 1000);
 
-  const { data: offer, error } =
-    await supabase
-      .from('logistics_offers')
-      .insert({
-        request_id: requestId,
-        provider_id: provider.id,
-        price,
-        message,
-        estimated_minutes: estimatedMinutes,
-        status: 'pending'
-      })
-      .select(`
-        id,
-        request_id,
-        provider_id,
-        price,
-        message,
-        estimated_minutes,
-        status,
-        created_at,
-        updated_at
-      `)
-      .single();
+  const {
+    data: offer,
+    error
+  } = await supabase
+    .from('logistics_offers')
+    .insert({
+      request_id: requestId,
+      provider_id: provider.id,
+      price,
+      message,
+      estimated_minutes: estimatedMinutes,
+      status: 'pending'
+    })
+    .select(`
+      id,
+      request_id,
+      provider_id,
+      price,
+      message,
+      estimated_minutes,
+      status,
+      created_at,
+      updated_at
+    `)
+    .single();
 
   if (error) {
     if (error.code === '23505') {
@@ -630,17 +637,19 @@ async function getOffers(
     );
   }
 
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        requester_id,
-        provider_id,
-        status
-      `)
-      .eq('id', requestId)
-      .maybeSingle();
+  const {
+    data: request,
+    error: requestError
+  } = await supabase
+    .from('service_requests')
+    .select(`
+      id,
+      requester_id,
+      provider_id,
+      status
+    `)
+    .eq('id', requestId)
+    .maybeSingle();
 
   if (requestError) {
     throw new Error(
@@ -697,13 +706,15 @@ async function getOffers(
       );
     }
 
-    const { data: ownOffer, error: ownOfferError } =
-      await supabase
-        .from('logistics_offers')
-        .select('id')
-        .eq('request_id', requestId)
-        .eq('provider_id', currentProvider.id)
-        .maybeSingle();
+    const {
+      data: ownOffer,
+      error: ownOfferError
+    } = await supabase
+      .from('logistics_offers')
+      .select('id')
+      .eq('request_id', requestId)
+      .eq('provider_id', currentProvider.id)
+      .maybeSingle();
 
     if (ownOfferError) {
       throw new Error(
@@ -719,39 +730,41 @@ async function getOffers(
     }
   }
 
-  const { data: offers, error } =
-    await supabase
-      .from('logistics_offers')
-      .select(`
+  const {
+    data: offers,
+    error
+  } = await supabase
+    .from('logistics_offers')
+    .select(`
+      id,
+      request_id,
+      provider_id,
+      price,
+      message,
+      estimated_minutes,
+      status,
+      created_at,
+      updated_at,
+      logistics_providers (
         id,
-        request_id,
-        provider_id,
-        price,
-        message,
-        estimated_minutes,
-        status,
-        created_at,
-        updated_at,
-        logistics_providers (
-          id,
-          user_id,
-          service_type,
-          verified,
-          rating,
-          latitude,
-          longitude,
-          availability_status,
-          availability_note,
-          available_at
-        )
-      `)
-      .eq('request_id', requestId)
-      .order('price', {
-        ascending: true
-      })
-      .order('created_at', {
-        ascending: true
-      });
+        user_id,
+        service_type,
+        verified,
+        rating,
+        latitude,
+        longitude,
+        availability_status,
+        availability_note,
+        available_at
+      )
+    `)
+    .eq('request_id', requestId)
+    .order('price', {
+      ascending: true
+    })
+    .order('created_at', {
+      ascending: true
+    });
 
   if (error) {
     throw new Error(
@@ -842,17 +855,19 @@ async function acceptOffer(
     );
   }
 
-  const { data: request, error: requestError } =
-    await supabase
-      .from('service_requests')
-      .select(`
-        id,
-        requester_id,
-        provider_id,
-        status
-      `)
-      .eq('id', requestId)
-      .maybeSingle();
+  const {
+    data: request,
+    error: requestError
+  } = await supabase
+    .from('service_requests')
+    .select(`
+      id,
+      requester_id,
+      provider_id,
+      status
+    `)
+    .eq('id', requestId)
+    .maybeSingle();
 
   if (requestError) {
     throw new Error(
@@ -890,15 +905,17 @@ async function acceptOffer(
       requestId
     );
 
-  const { data, error } =
-    await supabase.rpc(
-      'accept_logistics_offer',
-      {
-        p_request_id: requestId,
-        p_offer_id: offerId,
-        p_provider_id: providerId
-      }
-    );
+  const {
+    data,
+    error
+  } = await supabase.rpc(
+    'accept_logistics_offer',
+    {
+      p_request_id: requestId,
+      p_offer_id: offerId,
+      p_provider_id: providerId
+    }
+  );
 
   if (error) {
     console.error(
@@ -929,18 +946,20 @@ async function getOfferProviderId(
   offerId,
   requestId
 ) {
-  const { data, error } =
-    await supabase
-      .from('logistics_offers')
-      .select(`
-        id,
-        request_id,
-        provider_id,
-        status
-      `)
-      .eq('id', offerId)
-      .eq('request_id', requestId)
-      .maybeSingle();
+  const {
+    data,
+    error
+  } = await supabase
+    .from('logistics_offers')
+    .select(`
+      id,
+      request_id,
+      provider_id,
+      status
+    `)
+    .eq('id', offerId)
+    .eq('request_id', requestId)
+    .maybeSingle();
 
   if (error) {
     throw new Error(
@@ -983,14 +1002,16 @@ async function withdrawOffer(
   const provider =
     await requireProvider(userId);
 
-  const { data, error } =
-    await supabase.rpc(
-      'withdraw_logistics_offer',
-      {
-        p_offer_id: offerId,
-        p_provider_id: provider.id
-      }
-    );
+  const {
+    data,
+    error
+  } = await supabase.rpc(
+    'withdraw_logistics_offer',
+    {
+      p_offer_id: offerId,
+      p_provider_id: provider.id
+    }
+  );
 
   if (error) {
     const rpcError = new Error(
@@ -1000,4 +1021,15 @@ async function withdrawOffer(
 
     rpcError.statusCode =
       error.code === 'P0001'
-        ? 4
+        ? 409
+        : 500;
+
+    throw rpcError;
+  }
+
+  return Array.isArray(data)
+    ? data[0]
+    : data;
+}
+
+// =============
