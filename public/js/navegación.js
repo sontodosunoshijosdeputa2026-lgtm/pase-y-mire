@@ -1,206 +1,584 @@
-// Navegación lateral con scroll suave
+// ============================================================
+// PASE Y MIRE
+// Navegación lateral por pantallas
+// ============================================================
+
 class NavigationManager {
   constructor() {
+    this.container = null;
     this.screens = [];
+    this.indicator = null;
     this.currentIndex = 0;
     this.isAnimating = false;
+    this.isInitialized = false;
+
     this.init();
   }
 
+  // ==========================================================
+  // INICIALIZACIÓN
+  // ==========================================================
+
   init() {
-    this.setupScreens();
+    if (this.isInitialized) {
+      return;
+    }
+
+    this.container =
+      document.querySelector('.screens-container');
+
+    if (!this.container) {
+      console.warn(
+        'NavigationManager: no existe .screens-container'
+      );
+      return;
+    }
+
+    this.screens = Array.from(
+      this.container.querySelectorAll('.screen')
+    );
+
+    if (this.screens.length === 0) {
+      console.warn(
+        'NavigationManager: no existen pantallas .screen'
+      );
+      return;
+    }
+
+    this.isInitialized = true;
+
+    this.configureContainer();
+    this.configureScreens();
+    this.createIndicator();
     this.setupNavigation();
     this.setupSwipe();
     this.setupKeyboard();
     this.setupHashRouting();
+    this.setupResize();
+
+    this.goToHashOrFirst(false);
   }
 
-  setupScreens() {
-    this.screens = document.querySelectorAll('.screen');
-    if (this.screens.length === 0) return;
+  // ==========================================================
+  // CONTENEDOR
+  // ==========================================================
 
-    // Configurar contenedor
-    const container = document.querySelector('.screens-container');
-    if (container) {
-      container.style.display = 'flex';
-      container.style.flexDirection = 'row';
-      container.style.transition = 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-      
-      this.screens.forEach((screen, index) => {
-        screen.style.flex = '0 0 100%';
-        screen.style.width = '100%';
-        screen.style.overflowY = 'auto';
-        screen.style.padding = '20px';
-        screen.style.boxSizing = 'border-box';
-      });
+  configureContainer() {
+    this.container.style.display = 'flex';
+    this.container.style.flexDirection = 'row';
+    this.container.style.flexWrap = 'nowrap';
+    this.container.style.width = '100%';
+    this.container.style.height = '100vh';
+    this.container.style.overflowX = 'hidden';
+    this.container.style.overflowY = 'hidden';
+    this.container.style.scrollBehavior = 'auto';
+    this.container.style.touchAction = 'pan-y';
+  }
+
+  // ==========================================================
+  // PANTALLAS
+  // ==========================================================
+
+  configureScreens() {
+    this.screens.forEach(screen => {
+      screen.style.flex = '0 0 100%';
+      screen.style.width = '100%';
+      screen.style.minWidth = '100%';
+      screen.style.height = '100vh';
+      screen.style.overflowY = 'auto';
+      screen.style.overflowX = 'hidden';
+      screen.style.boxSizing = 'border-box';
+      screen.style.scrollSnapAlign = 'start';
+    });
+
+    this.container.style.scrollSnapType =
+      'x mandatory';
+  }
+
+  // ==========================================================
+  // INDICADOR
+  // ==========================================================
+
+  createIndicator() {
+    this.indicator =
+      document.querySelector(
+        '.navigation-indicator'
+      );
+
+    if (!this.indicator) {
+      this.indicator =
+        document.createElement('div');
+
+      this.indicator.className =
+        'navigation-indicator';
+
+      this.indicator.setAttribute(
+        'aria-label',
+        'Navegación de pantallas'
+      );
+
+      document.body.appendChild(
+        this.indicator
+      );
     }
 
-    // Mostrar pantalla inicial
-    this.goTo(0, false);
+    this.indicator.innerHTML = '';
+
+    this.screens.forEach(
+      (screen, index) => {
+        const button =
+          document.createElement('button');
+
+        button.type = 'button';
+
+        button.className =
+          'navigation-dot';
+
+        button.dataset.index =
+          String(index);
+
+        button.setAttribute(
+          'aria-label',
+          `Ir a ${this.getScreenTitle(screen, index)}`
+        );
+
+        button.addEventListener(
+          'click',
+          () => {
+            this.goTo(index);
+          }
+        );
+
+        this.indicator.appendChild(
+          button
+        );
+      }
+    );
+
+    this.updateIndicator();
   }
+
+  getScreenTitle(screen, index) {
+    return (
+      screen.dataset.title ||
+      screen.id ||
+      `Pantalla ${index + 1}`
+    );
+  }
+
+  updateIndicator() {
+    if (!this.indicator) {
+      return;
+    }
+
+    const dots =
+      this.indicator.querySelectorAll(
+        '.navigation-dot'
+      );
+
+    dots.forEach((dot, index) => {
+      const active =
+        index === this.currentIndex;
+
+      dot.classList.toggle(
+        'active',
+        active
+      );
+
+      dot.setAttribute(
+        'aria-current',
+        active
+          ? 'page'
+          : 'false'
+      );
+    });
+  }
+
+  // ==========================================================
+  // NAVEGACIÓN
+  // ==========================================================
 
   setupNavigation() {
-    // Botones de navegación
-    document.querySelectorAll('[data-nav]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const target = btn.dataset.nav;
-        const index = this.getScreenIndex(target);
-        if (index !== -1) {
-          this.goTo(index);
-          this.updateActiveNav(btn);
+    document.addEventListener(
+      'click',
+      event => {
+        const target =
+          event.target.closest(
+            '[data-screen-index]'
+          );
+
+        if (!target) {
+          return;
         }
-      });
-    });
 
-    // Botones de navegación lateral (flechas)
-    document.querySelector('[data-nav="prev"]')?.addEventListener('click', () => {
-      this.goTo(this.currentIndex - 1);
-    });
+        const index =
+          Number(
+            target.dataset.screenIndex
+          );
 
-    document.querySelector('[data-nav="next"]')?.addEventListener('click', () => {
-      this.goTo(this.currentIndex + 1);
-    });
+        if (
+          Number.isInteger(index) &&
+          index >= 0 &&
+          index < this.screens.length
+        ) {
+          event.preventDefault();
+          this.goTo(index);
+        }
+      }
+    );
+
+    this.container.addEventListener(
+      'scroll',
+      () => {
+        if (this.isAnimating) {
+          return;
+        }
+
+        this.detectCurrentScreen();
+      },
+      {
+        passive: true
+      }
+    );
   }
 
-  setupSwipe() {
-    let touchStartX = 0;
-    let touchEndX = 0;
-    let touchStartY = 0;
-    let isSwiping = false;
+  detectCurrentScreen() {
+    const width =
+      this.container.clientWidth;
 
-    const container = document.querySelector('.screens-container');
-    if (!container) return;
+    if (!width) {
+      return;
+    }
 
-    container.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
-      touchStartY = e.touches[0].clientY;
-      isSwiping = false;
-    }, { passive: true });
+    const index =
+      Math.round(
+        this.container.scrollLeft /
+          width
+      );
 
-    container.addEventListener('touchmove', (e) => {
-      const diffX = touchStartX - e.touches[0].clientX;
-      const diffY = touchStartY - e.touches[0].clientY;
-      
-      if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
-        isSwiping = true;
-        e.preventDefault();
-      }
-    }, { passive: false });
+    const safeIndex =
+      Math.max(
+        0,
+        Math.min(
+          index,
+          this.screens.length - 1
+        )
+      );
 
-    container.addEventListener('touchend', (e) => {
-      if (!isSwiping) return;
-      
-      const diffX = touchStartX - e.changedTouches[0].clientX;
-      if (Math.abs(diffX) > 50) {
-        this.goTo(this.currentIndex + (diffX > 0 ? 1 : -1));
-      }
-    }, { passive: true });
-  }
+    if (
+      safeIndex !==
+      this.currentIndex
+    ) {
+      this.currentIndex =
+        safeIndex;
 
-  setupKeyboard() {
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        this.goTo(this.currentIndex - 1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        this.goTo(this.currentIndex + 1);
-      }
-    });
-  }
-
-  setupHashRouting() {
-    // Navegar por hash en la URL
-    window.addEventListener('hashchange', () => {
-      const hash = window.location.hash.slice(1);
-      const index = this.getScreenIndex(hash);
-      if (index !== -1) {
-        this.goTo(index);
-      }
-    });
-
-    // Si hay hash al cargar
-    if (window.location.hash) {
-      const hash = window.location.hash.slice(1);
-      const index = this.getScreenIndex(hash);
-      if (index !== -1) {
-        setTimeout(() => this.goTo(index, false), 100);
-      }
+      this.updateIndicator();
+      this.updateHash();
     }
   }
 
-  goTo(index, animate = true) {
-    if (this.isAnimating) return;
-    if (index < 0 || index >= this.screens.length) return;
+  goTo(index, smooth = true) {
+    if (
+      !this.container ||
+      !this.screens.length
+    ) {
+      return;
+    }
+
+    if (
+      index < 0 ||
+      index >= this.screens.length
+    ) {
+      return;
+    }
 
     this.currentIndex = index;
+
+    this.updateIndicator();
+    this.updateHash();
+
+    const left =
+      this.screens[index].offsetLeft;
+
     this.isAnimating = true;
 
-    const container = document.querySelector('.screens-container');
-    if (container) {
-      container.style.transform = `translateX(-${index * 100}%)`;
-    }
-
-    // Actualizar hash
-    const screenId = this.screens[index]?.id || '';
-    if (screenId && history.pushState) {
-      history.pushState(null, '', `#${screenId}`);
-    }
-
-    // Actualizar navegación activa
-    const navButtons = document.querySelectorAll('[data-nav]');
-    navButtons.forEach(btn => {
-      const target = btn.dataset.nav;
-      const btnIndex = this.getScreenIndex(target);
-      btn.classList.toggle('active', btnIndex === index);
+    this.container.scrollTo({
+      left,
+      behavior:
+        smooth
+          ? 'smooth'
+          : 'auto'
     });
 
-    // Disparar evento
-    const event = new CustomEvent('screenchange', {
-      detail: { index, screenId: screenId || '' }
-    });
-    document.dispatchEvent(event);
-
-    setTimeout(() => {
-      this.isAnimating = false;
-    }, animate ? 500 : 0);
+    window.setTimeout(
+      () => {
+        this.isAnimating = false;
+        this.detectCurrentScreen();
+      },
+      smooth ? 450 : 0
+    );
   }
 
-  getScreenIndex(target) {
-    // Por nombre
-    if (typeof target === 'string') {
-      const screen = document.getElementById(target);
-      if (screen) return Array.from(this.screens).indexOf(screen);
-    }
-    // Por índice
-    if (typeof target === 'number') {
-      return target >= 0 && target < this.screens.length ? target : -1;
-    }
-    return -1;
-  }
-
-  updateActiveNav(activeBtn) {
-    document.querySelectorAll('[data-nav]').forEach(btn => {
-      btn.classList.toggle('active', btn === activeBtn);
-    });
-  }
-
-  // Métodos públicos
   next() {
-    this.goTo(this.currentIndex + 1);
+    this.goTo(
+      Math.min(
+        this.currentIndex + 1,
+        this.screens.length - 1
+      )
+    );
   }
 
-  prev() {
-    this.goTo(this.currentIndex - 1);
+  previous() {
+    this.goTo(
+      Math.max(
+        this.currentIndex - 1,
+        0
+      )
+    );
   }
 
-  goToScreen(screenId) {
-    const index = this.getScreenIndex(screenId);
-    if (index !== -1) this.goTo(index);
+  // ==========================================================
+  // SWIPE
+  // ==========================================================
+
+  setupSwipe() {
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+
+    this.container.addEventListener(
+      'touchstart',
+      event => {
+        if (!event.touches.length) {
+          return;
+        }
+
+        const touch =
+          event.touches[0];
+
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startTime =
+          Date.now();
+      },
+      {
+        passive: true
+      }
+    );
+
+    this.container.addEventListener(
+      'touchend',
+      event => {
+        if (!event.changedTouches.length) {
+          return;
+        }
+
+        const touch =
+          event.changedTouches[0];
+
+        const deltaX =
+          touch.clientX - startX;
+
+        const deltaY =
+          touch.clientY - startY;
+
+        const duration =
+          Date.now() - startTime;
+
+        const horizontal =
+          Math.abs(deltaX) >
+          Math.abs(deltaY);
+
+        const validDistance =
+          Math.abs(deltaX) >= 50;
+
+        const validDuration =
+          duration <= 800;
+
+        if (
+          !horizontal ||
+          !validDistance ||
+          !validDuration
+        ) {
+          return;
+        }
+
+        if (deltaX < 0) {
+          this.next();
+        } else {
+          this.previous();
+        }
+      },
+      {
+        passive: true
+      }
+    );
+  }
+
+  // ==========================================================
+  // TECLADO
+  // ==========================================================
+
+  setupKeyboard() {
+    document.addEventListener(
+      'keydown',
+      event => {
+        const tag =
+          event.target?.tagName;
+
+        const typing =
+          tag === 'INPUT' ||
+          tag === 'TEXTAREA' ||
+          tag === 'SELECT' ||
+          event.target?.isContentEditable;
+
+        if (typing) {
+          return;
+        }
+
+        if (
+          event.key ===
+          'ArrowRight'
+        ) {
+          event.preventDefault();
+          this.next();
+        }
+
+        if (
+          event.key ===
+          'ArrowLeft'
+        ) {
+          event.preventDefault();
+          this.previous();
+        }
+      }
+    );
+  }
+
+  // ==========================================================
+  // HASH
+  // ==========================================================
+
+  setupHashRouting() {
+    window.addEventListener(
+      'hashchange',
+      () => {
+        this.goToHash(true);
+      }
+    );
+  }
+
+  goToHashOrFirst(smooth) {
+    const handled =
+      this.goToHash(smooth);
+
+    if (!handled) {
+      this.goTo(
+        0,
+        smooth
+      );
+    }
+  }
+
+  goToHash(smooth = true) {
+    const hash =
+      window.location.hash
+        .replace('#', '')
+        .trim();
+
+    if (!hash) {
+      return false;
+    }
+
+    const index =
+      this.screens.findIndex(
+        screen =>
+          screen.id === hash ||
+          screen.dataset.screen === hash
+      );
+
+    if (index === -1) {
+      return false;
+    }
+
+    this.goTo(
+      index,
+      smooth
+    );
+
+    return true;
+  }
+
+  updateHash() {
+    const screen =
+      this.screens[
+        this.currentIndex
+      ];
+
+    if (!screen) {
+      return;
+    }
+
+    const value =
+      screen.id ||
+      screen.dataset.screen;
+
+    if (!value) {
+      return;
+    }
+
+    const newHash =
+      `#${value}`;
+
+    if (
+      window.location.hash !==
+      newHash
+    ) {
+      history.replaceState(
+        null,
+        '',
+        newHash
+      );
+    }
+  }
+
+  // ==========================================================
+  // RESIZE
+  // ==========================================================
+
+  setupResize() {
+    let timeout = null;
+
+    window.addEventListener(
+      'resize',
+      () => {
+        window.clearTimeout(
+          timeout
+        );
+
+        timeout =
+          window.setTimeout(
+            () => {
+              this.goTo(
+                this.currentIndex,
+                false
+              );
+            },
+            150
+          );
+      }
+    );
   }
 }
 
-// Inicializar
-document.addEventListener('DOMContentLoaded', () => {
-  window.navigation = new NavigationManager();
-});
+// ============================================================
+// INICIO
+// ============================================================
+
+document.addEventListener(
+  'DOMContentLoaded',
+  () => {
+    window.navigationManager =
+      new NavigationManager();
+  }
+);
