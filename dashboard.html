@@ -2,46 +2,502 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pase y Mire - Dashboard</title>
-  <link rel="stylesheet" href="/public/css/styles.css">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#111111"
+  >
+
+  <title>Pase y Mire</title>
+
+  <link
+    rel="stylesheet"
+    href="/public/css/styles.css"
+  >
+
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .screens-container {
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      scroll-behavior: auto;
+      scroll-snap-type: x mandatory;
+    }
+
+    .screen {
+      flex: 0 0 100%;
+      width: 100%;
+      min-width: 100%;
+      height: 100vh;
+      overflow-y: auto;
+      overflow-x: hidden;
+      box-sizing: border-box;
+      scroll-snap-align: start;
+      padding: 24px;
+    }
+
+    .screen-content {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding-bottom: 80px;
+    }
+
+    .screen h1 {
+      margin-top: 0;
+    }
+
+    .screen-actions {
+      display: grid;
+      grid-template-columns:
+        repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .screen-action {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 90px;
+      padding: 18px;
+      border-radius: 14px;
+      text-decoration: none;
+      box-sizing: border-box;
+    }
+
+    .navigation-indicator {
+      position: fixed;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .navigation-dot {
+      width: 10px;
+      height: 10px;
+      padding: 0;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(128, 128, 128, 0.45);
+      cursor: pointer;
+    }
+
+    .navigation-dot.active {
+      transform: scale(1.35);
+      background: currentColor;
+    }
+
+    .screen-back {
+      display: inline-block;
+      margin-top: 20px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .screen {
+        padding: 16px;
+      }
+
+      .navigation-indicator {
+        right: 8px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <main class="main-content">
-    <div class="dashboard-header">
-      <h2>Panel de control</h2>
-      <p class="welcome">Bienvenido</p>
-    </div>
-    
-    <div class="cards">
-      <div class="card">
-        <div class="card-icon">👁</div>
-        <h3>Visitas</h3>
-        <p class="number">1,234</p>
+
+  <main
+    class="screens-container"
+    aria-label="Pase y Mire"
+  >
+
+    <!-- ======================================================
+         1. INICIO
+    ======================================================= -->
+
+    <section
+      id="inicio"
+      class="screen"
+      data-screen="inicio"
+      data-title="Inicio"
+    >
+      <div class="screen-content">
+
+        <h1>Pase y Mire</h1>
+
+        <p>
+          Bienvenido a tu aplicación.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="#marketplace"
+            class="btn screen-action"
+            data-screen-index="1"
+          >
+            Marketplace
+          </a>
+
+          <a
+            href="#reels"
+            class="btn screen-action"
+            data-screen-index="2"
+          >
+            Reels
+          </a>
+
+          <a
+            href="#logistica"
+            class="btn screen-action"
+            data-screen-index="3"
+          >
+            Logística
+          </a>
+
+          <a
+            href="#pedidos"
+            class="btn screen-action"
+            data-screen-index="4"
+          >
+            Pedidos
+          </a>
+
+          <a
+            href="#billetera"
+            class="btn screen-action"
+            data-screen-index="5"
+          >
+            Billetera
+          </a>
+
+          <a
+            href="#perfil"
+            class="btn screen-action"
+            data-screen-index="6"
+          >
+            Perfil
+          </a>
+
+        </div>
+
       </div>
-      <div class="card">
-        <div class="card-icon">👥</div>
-        <h3>Usuarios</h3>
-        <p class="number">567</p>
+    </section>
+
+
+    <!-- ======================================================
+         2. MARKETPLACE
+    ======================================================= -->
+
+    <section
+      id="marketplace"
+      class="screen"
+      data-screen="marketplace"
+      data-title="Marketplace"
+    >
+      <div class="screen-content">
+
+        <h1>Marketplace</h1>
+
+        <p>
+          Compra, venta y publicaciones.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/marketplace.html"
+            class="btn screen-action"
+          >
+            Abrir Marketplace
+          </a>
+
+        </div>
+
       </div>
-      <div class="card">
-        <div class="card-icon">📦</div>
-        <h3>Publicaciones</h3>
-        <p class="number">89</p>
+    </section>
+
+
+    <!-- ======================================================
+         3. REELS
+    ======================================================= -->
+
+    <section
+      id="reels"
+      class="screen"
+      data-screen="reels"
+      data-title="Reels"
+    >
+      <div class="screen-content">
+
+        <h1>Reels</h1>
+
+        <p>
+          Contenido y publicaciones multimedia.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/reels.html"
+            class="btn screen-action"
+          >
+            Abrir Reels
+          </a>
+
+        </div>
+
       </div>
-    </div>
-    
-    <div class="quick-actions">
-      <h3>Acciones rápidas</h3>
-      <div class="actions-grid">
-        <a href="/marketplace.html" class="btn">Ver Marketplace</a>
-        <a href="/orders.html" class="btn">Ver Pedidos</a>
-        <a href="/wallet.html" class="btn">Mi Billetera</a>
+    </section>
+
+
+    <!-- ======================================================
+         4. LOGÍSTICA
+    ======================================================= -->
+
+    <section
+      id="logistica"
+      class="screen"
+      data-screen="logistica"
+      data-title="Logística"
+    >
+      <div class="screen-content">
+
+        <h1>Logística</h1>
+
+        <p>
+          Solicitudes, ofertas y prestadores.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/logistics.html"
+            class="btn screen-action"
+          >
+            Abrir Logística
+          </a>
+
+          <a
+            href="/prestadores.html"
+            class="btn screen-action"
+          >
+            Prestadores
+          </a>
+
+        </div>
+
       </div>
-    </div>
+    </section>
+
+
+    <!-- ======================================================
+         5. PEDIDOS
+    ======================================================= -->
+
+    <section
+      id="pedidos"
+      class="screen"
+      data-screen="pedidos"
+      data-title="Pedidos"
+    >
+      <div class="screen-content">
+
+        <h1>Pedidos</h1>
+
+        <p>
+          Tus pedidos y operaciones.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/orders.html"
+            class="btn screen-action"
+          >
+            Abrir Pedidos
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================================
+         6. BILLETERA
+    ======================================================= -->
+
+    <section
+      id="billetera"
+      class="screen"
+      data-screen="billetera"
+      data-title="Billetera"
+    >
+      <div class="screen-content">
+
+        <h1>Billetera</h1>
+
+        <p>
+          Pagos y saldo de la cuenta.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/wallet.html"
+            class="btn screen-action"
+          >
+            Abrir Billetera
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================================
+         7. PERFIL
+    ======================================================= -->
+
+    <section
+      id="perfil"
+      class="screen"
+      data-screen="perfil"
+      data-title="Perfil"
+    >
+      <div class="screen-content">
+
+        <h1>Perfil</h1>
+
+        <p>
+          Información y configuración de tu cuenta.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/card.html"
+            class="btn screen-action"
+          >
+            Mi tarjeta
+          </a>
+
+          <a
+            href="/qr.html"
+            class="btn screen-action"
+          >
+            Mi QR
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================================
+         8. PUBLICIDAD
+    ======================================================= -->
+
+    <section
+      id="publicidad"
+      class="screen"
+      data-screen="publicidad"
+      data-title="Publicidad"
+    >
+      <div class="screen-content">
+
+        <h1>Publicidad</h1>
+
+        <p>
+          Gestión de publicidad.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/advertising.html"
+            class="btn screen-action"
+          >
+            Abrir Publicidad
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ======================================================
+         9. ADMINISTRACIÓN
+    ======================================================= -->
+
+    <section
+      id="admin"
+      class="screen"
+      data-screen="admin"
+      data-title="Administración"
+    >
+      <div class="screen-content">
+
+        <h1>Administración</h1>
+
+        <p>
+          Herramientas administrativas.
+        </p>
+
+        <div class="screen-actions">
+
+          <a
+            href="/admin.html"
+            class="btn screen-action"
+          >
+            Abrir Administración
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
   </main>
-  
+
+
+  <!-- ========================================================
+       SCRIPTS
+  ========================================================= -->
+
   <script src="/public/js/auth.js"></script>
+
   <script src="/public/js/nav.js"></script>
+
+  <script src="/public/js/navigation.js"></script>
+
 </body>
-</html>
+          </html>
