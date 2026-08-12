@@ -2,554 +2,98 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
   >
 
-  <title>Pase y Mire - Dashboard</title>
+  <title>Pase y Mire</title>
 
   <link
     rel="stylesheet"
     href="/public/css/styles.css"
   >
-
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    .dashboard-shell {
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    .screens-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: row;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      overflow-y: hidden;
-      scroll-behavior: smooth;
-      scroll-snap-type: x mandatory;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-
-    .screens-container::-webkit-scrollbar {
-      display: none;
-    }
-
-    .screen {
-      flex: 0 0 100%;
-      width: 100%;
-      min-width: 100%;
-      height: 100%;
-      overflow-y: auto;
-      overflow-x: hidden;
-      box-sizing: border-box;
-      scroll-snap-align: start;
-      padding: 90px 24px 40px;
-    }
-
-    .screen-inner {
-      width: 100%;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .dashboard-header {
-      margin-bottom: 30px;
-    }
-
-    .dashboard-header h2 {
-      margin: 0 0 8px;
-    }
-
-    .welcome {
-      margin: 0;
-    }
-
-    .cards {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .card {
-      padding: 20px;
-      border-radius: 16px;
-      box-sizing: border-box;
-    }
-
-    .quick-actions {
-      margin-top: 20px;
-    }
-
-    .actions-grid {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-    }
-
-    .actions-grid .btn {
-      min-height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-      box-sizing: border-box;
-    }
-
-    .screen-title {
-      margin-top: 0;
-    }
-
-    .screen-actions {
-      display: grid;
-      grid-template-columns:
-        repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin-top: 25px;
-    }
-
-    .screen-actions .btn {
-      min-height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-decoration: none;
-    }
-
-    .navigation-dots {
-      position: fixed;
-      right: 14px;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .navigation-dot {
-      width: 10px;
-      height: 10px;
-      padding: 0;
-      border: 0;
-      border-radius: 50%;
-      cursor: pointer;
-      background: rgba(128, 128, 128, 0.45);
-    }
-
-    .navigation-dot.active {
-      transform: scale(1.4);
-      background: currentColor;
-    }
-
-    @media (max-width: 600px) {
-      .screen {
-        padding: 80px 16px 30px;
-      }
-    }
-  </style>
 </head>
 
 <body>
 
-  <div class="dashboard-shell">
-
-    <main
-      class="screens-container"
-      id="screensContainer"
-      aria-label="Pase y Mire"
-    >
-
-      <!-- ==================================================
-           DASHBOARD
-      =================================================== -->
-
-      <section
-        id="dashboard"
-        class="screen"
-        data-screen="dashboard"
-        data-title="Dashboard"
-      >
-        <div class="screen-inner">
-
-          <div class="dashboard-header">
-            <h2>Panel de control</h2>
-            <p class="welcome">
-              Bienvenido
-            </p>
-          </div>
-
-          <div class="cards">
-
-            <div class="card">
-              <div class="card-icon">👁</div>
-              <h3>Visitas</h3>
-              <p class="number">1,234</p>
-            </div>
-
-            <div class="card">
-              <div class="card-icon">👥</div>
-              <h3>Usuarios</h3>
-              <p class="number">567</p>
-            </div>
-
-            <div class="card">
-              <div class="card-icon">📦</div>
-              <h3>Publicaciones</h3>
-              <p class="number">89</p>
-            </div>
-
-          </div>
-
-          <div class="quick-actions">
-
-            <h3>Acciones rápidas</h3>
-
-            <div class="actions-grid">
-
-              <a
-                href="#marketplace"
-                class="btn"
-                data-screen="marketplace"
-              >
-                Ver Marketplace
-              </a>
-
-              <a
-                href="#pedidos"
-                class="btn"
-                data-screen="pedidos"
-              >
-                Ver Pedidos
-              </a>
-
-              <a
-                href="#billetera"
-                class="btn"
-                data-screen="billetera"
-              >
-                Mi Billetera
-              </a>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           MARKETPLACE
-      =================================================== -->
-
-      <section
-        id="marketplace"
-        class="screen"
-        data-screen="marketplace"
-        data-title="Marketplace"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Marketplace
-          </h2>
-
-          <p>
-            Comprá, vendé y descubrí publicaciones.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/marketplace.html"
-              class="btn"
-            >
-              Abrir Marketplace
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           PEDIDOS
-      =================================================== -->
-
-      <section
-        id="pedidos"
-        class="screen"
-        data-screen="pedidos"
-        data-title="Pedidos"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Pedidos
-          </h2>
-
-          <p>
-            Consultá tus pedidos.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/orders.html"
-              class="btn"
-            >
-              Abrir Pedidos
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           BILLETERA
-      =================================================== -->
-
-      <section
-        id="billetera"
-        class="screen"
-        data-screen="billetera"
-        data-title="Billetera"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Billetera
-          </h2>
-
-          <p>
-            Consultá tu saldo y operaciones.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/wallet.html"
-              class="btn"
-            >
-              Abrir Billetera
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           LOGÍSTICA
-      =================================================== -->
-
-      <section
-        id="logistica"
-        class="screen"
-        data-screen="logistica"
-        data-title="Logística"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Logística
-          </h2>
-
-          <p>
-            Solicitudes, ofertas y servicios logísticos.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/logistics.html"
-              class="btn"
-            >
-              Abrir Logística
-            </a>
-
-            <a
-              href="/prestadores.html"
-              class="btn"
-            >
-              Prestadores
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           REELS
-      =================================================== -->
-
-      <section
-        id="reels"
-        class="screen"
-        data-screen="reels"
-        data-title="Reels"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Reels
-          </h2>
-
-          <p>
-            Mirá y compartí contenido.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/reels.html"
-              class="btn"
-            >
-              Abrir Reels
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           PUBLICIDAD
-      =================================================== -->
-
-      <section
-        id="publicidad"
-        class="screen"
-        data-screen="publicidad"
-        data-title="Publicidad"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Publicidad
-          </h2>
-
-          <p>
-            Administrá tus campañas.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/advertising.html"
-              class="btn"
-            >
-              Abrir Publicidad
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           PRESTADORES
-      =================================================== -->
-
-      <section
-        id="prestadores"
-        class="screen"
-        data-screen="prestadores"
-        data-title="Prestadores"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Prestadores
-          </h2>
-
-          <p>
-            Prestadores de servicios disponibles.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/prestadores.html"
-              class="btn"
-            >
-              Abrir Prestadores
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-
-      <!-- ==================================================
-           ADMIN
-      =================================================== -->
-
-      <section
-        id="admin"
-        class="screen"
-        data-screen="admin"
-        data-title="Administración"
-      >
-        <div class="screen-inner">
-
-          <h2 class="screen-title">
-            Administración
-          </h2>
-
-          <p>
-            Herramientas administrativas.
-          </p>
-
-          <div class="screen-actions">
-
-            <a
-              href="/admin.html"
-              class="btn"
-            >
-              Abrir Administración
-            </a>
-
-          </div>
-
-        </div>
-      </section>
-
-    </main>
-
-  </div>
-
+  <main class="dashboard">
+
+    <section class="dashboard-content">
+
+      <h1>Pase y Mire</h1>
+
+      <p>
+        Bienvenido a Pase y Mire.
+      </p>
+
+      <div class="dashboard-actions">
+
+        <a
+          href="/marketplace.html"
+          class="btn"
+        >
+          Marketplace
+        </a>
+
+        <a
+          href="/orders.html"
+          class="btn"
+        >
+          Pedidos
+        </a>
+
+        <a
+          href="/logistics.html"
+          class="btn"
+        >
+          Logística
+        </a>
+
+        <a
+          href="/wallet.html"
+          class="btn"
+        >
+          Billetera
+        </a>
+
+        <a
+          href="/reels.html"
+          class="btn"
+        >
+          Reels
+        </a>
+
+        <a
+          href="/prestadores.html"
+          class="btn"
+        >
+          Prestadores
+        </a>
+
+        <a
+          href="/advertising.html"
+          class="btn"
+        >
+          Publicidad
+        </a>
+
+        <a
+          href="/admin.html"
+          class="btn"
+        >
+          Administración
+        </a>
+
+      </div>
+
+    </section>
+
+  </main>
 
   <script src="/public/js/auth.js"></script>
-  <script src="/public/js/nav.js"></script>
-  <script src="/public/js/navigation.js"></script>
+  <script src="/public/js/app-shell.js"></script>
 
 </body>
-  </html>
+</html>
